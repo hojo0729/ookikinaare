@@ -1,4 +1,4 @@
-const VER="v2";
+const VER="v3";
 const CORE="ookikunare-core-"+VER, RUNTIME="ookikunare-rt";
 const FILES=["./","./index.html","./local-db.js","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png","./icons/apple-touch-icon.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CORE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});
