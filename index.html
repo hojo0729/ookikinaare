@@ -162,7 +162,7 @@ button{cursor:pointer}
 .strip{display:flex;align-items:center;gap:12px;overflow-x:auto;padding:6px 4px 10px;scrollbar-width:none}
 .strip::-webkit-scrollbar{display:none}
 .pb{flex:none;width:68px;height:68px;border-radius:50%;padding:0;border:3px solid var(--surface);background:var(--bg2);box-shadow:0 0 0 2px var(--line);overflow:hidden}
-.pb img{width:100%;height:100%;object-fit:cover;display:block}
+.pb svg{width:100%;height:100%;display:block}
 .pb:active{transform:scale(.94)}
 .ghost{flex:none;width:56px;height:56px;border-radius:50%;border:2px dashed var(--line)}
 .ghost-note{margin:0;color:var(--muted);font-size:13px;line-height:1.5;min-width:0}
@@ -178,9 +178,6 @@ button{cursor:pointer}
 .x{flex:none;width:40px;height:40px;border-radius:50%;border:2px solid var(--line);background:none;font-size:18px;line-height:1;padding:0}
 .panel{overflow-y:auto;display:grid;gap:16px;padding-bottom:4px;align-content:start}
 .lab{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700;margin:0 0 6px}
-.drop{position:relative;display:grid;place-items:center;gap:6px;min-height:112px;border:2px dashed var(--line);border-radius:20px;color:var(--muted);text-align:center;padding:12px;cursor:pointer;overflow:hidden}
-.drop:focus-within{outline:3px solid var(--accent);outline-offset:3px}
-.drop img{max-width:100%;max-height:200px;border-radius:12px;display:block}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:2px solid var(--line);background:none;border-radius:999px;padding:6px 14px;font-weight:500;font-size:14px}
@@ -205,12 +202,7 @@ textarea{min-height:76px;resize:vertical}
 .del{border:0;background:none;color:var(--muted);font-size:12px;padding:6px}
 .del.armed{color:var(--danger);font-weight:700}
 
-/* viewer + toast */
-.viewer{position:fixed;inset:0;z-index:30;background:color-mix(in srgb,var(--ink) 88%,transparent);display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px;place-items:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));cursor:pointer}
-.viewer img{max-width:100%;max-height:100%;object-fit:contain;border-radius:20px;transition:filter .3s}
-.viewer img.blur{filter:blur(6px)}
-.vcap{color:var(--bg);text-align:center;font-size:15px;max-width:420px;margin:0;overflow-wrap:anywhere}
-.vcap small{display:block;opacity:.75;font-size:12px}
+/* toast */
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:40;max-width:90%;text-align:center}
 
 /* stage shortcut buttons */
@@ -429,7 +421,7 @@ textarea{min-height:76px;resize:vertical}
     <p class="next" id="nextLabel"></p>
   </section>
 
-  <section class="photos" aria-label="しゃしん">
+  <section class="photos" aria-label="みつけたのりもの">
     <div class="strip" id="strip"></div>
   </section>
 </div>
@@ -480,13 +472,6 @@ textarea{min-height:76px;resize:vertical}
     <div class="panel" id="panelAdd">
       <p class="warn" id="addWarn" hidden></p>
       <div>
-        <p class="lab">写真</p>
-        <label class="drop" for="photoInput" id="drop">
-          <input class="sr" id="photoInput" type="file" accept="image/*">
-          <span id="dropText">タップして写真をえらぶ・とる</span>
-        </label>
-      </div>
-      <div>
         <p class="lab">できたこと（いくつでも）</p>
         <div class="chips" id="chipBox"></div>
       </div>
@@ -503,7 +488,7 @@ textarea{min-height:76px;resize:vertical}
         <div class="seg" id="whoBox"></div>
       </div>
       <button class="go" id="goBtn" type="button">キャラにあげる</button>
-      <p class="note">写真は1こ +2、できたことは +2、ひとことだけでも +1。たまってくると、キャラが大きくなります。</p>
+      <p class="note">のりものやできたことは +2、ひとことだけでも +1。たまってくると、キャラが大きくなります。</p>
     </div>
 
     <div class="panel" id="panelLog" hidden>
@@ -521,11 +506,7 @@ textarea{min-height:76px;resize:vertical}
       </div>
       <div>
         <p class="lab">お子さんを ドライバーにする</p>
-        <label class="wide pickbtn" for="lookInput" id="lookReadLabel">
-          <input class="sr" id="lookInput" type="file" accept="image/*">
-          <span id="lookReadText">写真をえらんで、特徴を読み取る</span>
-        </label>
-        <p class="note" id="lookNote">髪型・髪の色・服の色は、下で手で えらべます。</p>
+        <p class="note" id="lookNote">髪型・髪の色・服の色を えらべます。</p>
       </div>
       <div>
         <p class="lab">髪型</p>
@@ -560,10 +541,6 @@ textarea{min-height:76px;resize:vertical}
   </section>
 </div>
 
-<div class="viewer" id="viewer" hidden>
-  <img id="vimg" alt="">
-  <p class="vcap" id="vcap"></p>
-</div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -608,8 +585,6 @@ function safeRec(d){
     chips:Array.isArray(d.chips)?d.chips.filter(c=>typeof c==="string").slice(0,10).map(c=>c.slice(0,20)):[],
     who:String(d.who||"").slice(0,6),
     createdAt:Number(d.createdAt)||0,
-    thumb:(typeof d.thumb==="string"&&d.thumb.indexOf("data:image/")===0)?d.thumb:"",
-    hasPhoto:!!d.hasPhoto,
     veh:Array.isArray(d.veh)?d.veh.filter(v=>typeof v==="string").slice(0,20).map(v=>v.slice(0,20)):[],
     pts:Math.min(6,Math.max(1,Number(d.pts)||1))
   };
@@ -767,11 +742,6 @@ cb.addEventListener("keydown",e=>{
 
 function feedReaction(rec,up,stamp){
   say("ぴかぴか！ ありがとう！"); talk(900); anim("a-squish");
-  if(rec.thumb){
-    const im=document.createElement("img"); im.className="fly"; im.alt=""; im.src=rec.thumb;
-    im.addEventListener("animationend",()=>im.remove());
-    $("stage").appendChild(im);
-  }
   [523.25,659.25,783.99].forEach((f,i)=>tone(f,i*.09,.18,"triangle",.15));
   const r=hero.getBoundingClientRect();
   burst(r.left+r.width/2,r.top+r.height*.5,10);
@@ -800,18 +770,19 @@ function renderMeter(){
 }
 function renderStrip(){
   const strip=$("strip"); strip.textContent="";
-  const ph=S.records.filter(r=>r.thumb).slice(0,30);
-  if(!ph.length){
+  const seen=[];
+  S.records.forEach(r=>r.veh.forEach(k=>{if(seen.indexOf(k)<0&&VEHICLES.some(v=>v.k===k)) seen.push(k);}));
+  if(!seen.length){
     for(let i=0;i<3;i++){const g=document.createElement("div"); g.className="ghost"; strip.appendChild(g);}
     const p=document.createElement("p"); p.className="ghost-note";
-    p.textContent="右上の「ながおし」ボタンから、写真やひとことをあげると、ここに並びます。";
+    p.textContent="右上の「ながおし」ボタンから、みつけたのりものをあげると、ここに並びます。";
     strip.appendChild(p);
     return;
   }
-  ph.forEach(r=>{
-    const b=document.createElement("button"); b.type="button"; b.className="pb"; b.setAttribute("aria-label","しゃしんを みる");
-    const im=document.createElement("img"); im.alt=""; im.src=r.thumb; b.appendChild(im);
-    b.addEventListener("click",()=>openViewer(r));
+  seen.slice(0,30).forEach(k=>{
+    const b=document.createElement("button"); b.type="button"; b.className="pb"; b.setAttribute("aria-label",vehName(k));
+    b.innerHTML=animalSvg(k);
+    b.addEventListener("click",()=>{unlockAudio(); animalSound(k);});
     strip.appendChild(b);
   });
 }
@@ -824,12 +795,8 @@ function renderLog(){
   }
   S.records.forEach(r=>{
     const row=document.createElement("div"); row.className="row";
-    const th=document.createElement(r.thumb?"button":"div"); th.className="th";
-    if(r.thumb){
-      th.type="button"; th.setAttribute("aria-label","しゃしんを みる");
-      const im=document.createElement("img"); im.alt=""; im.src=r.thumb; th.appendChild(im);
-      th.addEventListener("click",()=>openViewer(r));
-    }else th.textContent=r.who?r.who.charAt(0):"・";
+    const th=document.createElement("div"); th.className="th";
+    th.textContent=r.who?r.who.charAt(0):"・";
     const mid=document.createElement("div"); mid.style.minWidth="0";
     const meta=document.createElement("div"); meta.className="meta"; meta.textContent=metaOf(r); mid.appendChild(meta);
     if(r.note){const t=document.createElement("p"); t.className="txt"; t.textContent=r.note; mid.appendChild(t);}
@@ -907,35 +874,10 @@ ab.addEventListener("contextmenu",e=>e.preventDefault());
 
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
-  if(!$("viewer").hidden) closeViewer();
-  else if(S.sheetOpen) closeSheet();
+  if(S.sheetOpen) closeSheet();
   else if(!$("book").hidden) $("book").hidden=true;
   else if(!$("play").hidden) $("play").hidden=true;
 });
-
-/* ---------- photo viewer ---------- */
-const fullCache=new Map(); let viewId="";
-function closeViewer(){$("viewer").hidden=true; viewId="";}
-$("viewer").addEventListener("click",closeViewer);
-async function openViewer(r){
-  viewId=r.id;
-  const img=$("vimg"); img.src=r.thumb; img.classList.add("blur");
-  const cap=$("vcap"); cap.textContent="";
-  if(r.note) cap.appendChild(document.createTextNode(r.note));
-  const sm=document.createElement("small"); sm.textContent=metaOf(r)+"　（どこでも さわると とじるよ）"; cap.appendChild(sm);
-  $("viewer").hidden=false;
-  tone(SCALE[3],0,.18,"triangle",.14); say("みせて みせて");
-  let d=fullCache.get(r.id);
-  if(!d&&S.db&&r.hasPhoto){
-    try{
-      const s=await S.db.doc("photos/"+r.id).get();
-      const v=s.exists?s.data().data:"";
-      if(typeof v==="string"&&v.indexOf("data:image/")===0){d=v; fullCache.set(r.id,v);}
-    }catch(e){}
-  }
-  if(d&&viewId===r.id){img.src=d; img.classList.remove("blur");}
-  else if(viewId===r.id&&!d) img.classList.remove("blur");
-}
 
 /* ---------- add form ---------- */
 const chipBox=$("chipBox");
@@ -958,75 +900,29 @@ WHO.forEach(w=>{
 });
 renderWho();
 
-let prevUrl="";
-$("photoInput").addEventListener("change",e=>{
-  const f=e.target.files&&e.target.files[0]; S.file=f||null;
-  if(prevUrl){URL.revokeObjectURL(prevUrl); prevUrl="";}
-  const drop=$("drop"); const old=drop.querySelector("img"); if(old) old.remove();
-  if(f){
-    prevUrl=URL.createObjectURL(f);
-    const im=document.createElement("img"); im.alt="えらんだ写真"; im.src=prevUrl; drop.insertBefore(im,$("dropText"));
-    $("dropText").textContent="えらんだ写真："+f.name+"（"+Math.round(f.size/1024)+"KB）　タップで えらびなおす";
-  }else $("dropText").textContent="タップして写真をえらぶ・とる";
-});
 function resetForm(){
-  S.file=null; S.chips.clear(); S.veh.clear(); Array.prototype.forEach.call($("vehBox").children,b=>b.setAttribute("aria-pressed","false")); $("photoInput").value=""; $("noteIn").value="";
+  S.chips.clear(); S.veh.clear(); Array.prototype.forEach.call($("vehBox").children,b=>b.setAttribute("aria-pressed","false")); $("noteIn").value="";
   Array.prototype.forEach.call(chipBox.children,b=>b.setAttribute("aria-pressed","false"));
-  if(prevUrl){URL.revokeObjectURL(prevUrl); prevUrl="";}
-  const old=$("drop").querySelector("img"); if(old) old.remove();
-  $("dropText").textContent="タップして写真をえらぶ・とる";
-}
-function loadImg(file){
-  return new Promise((res,rej)=>{
-    const u=URL.createObjectURL(file), im=new Image();
-    im.onload=()=>{URL.revokeObjectURL(u); res(im);};
-    im.onerror=()=>{URL.revokeObjectURL(u); rej(new Error("img"));};
-    im.src=u;
-  });
-}
-function drawJpeg(im,max,square,q){
-  const sw=im.naturalWidth, sh=im.naturalHeight;
-  let sx=0,sy=0,sW=sw,sH=sh,dw,dh;
-  if(square){const m=Math.min(sw,sh); sx=(sw-m)/2; sy=(sh-m)/2; sW=m; sH=m; dw=max; dh=max;}
-  else{const k=Math.min(1,max/Math.max(sw,sh)); dw=Math.round(sw*k); dh=Math.round(sh*k);}
-  const c=document.createElement("canvas"); c.width=dw; c.height=dh;
-  c.getContext("2d").drawImage(im,sx,sy,sW,sH,0,0,dw,dh);
-  return c.toDataURL("image/jpeg",q);
-}
-async function processPhoto(file){
-  const im=await loadImg(file);
-  let full=drawJpeg(im,640,false,.72);
-  if(full.length>190000) full=drawJpeg(im,480,false,.58);
-  return {full:full,thumb:drawJpeg(im,160,true,.7)};
 }
 function errMsg(e,fallback){
   const c=e&&e.code;
   const tail=c?"（"+c+"）":(e&&e.message?"（"+String(e.message).slice(0,60)+"）":"");
-  if(c==="quota_exceeded") return "保存の上限に達しました。古い記録や写真を消してください。"+tail;
+  if(c==="quota_exceeded") return "保存の上限に達しました。古い記録を消してください。"+tail;
   if(c==="invalid_argument") return "保存できませんでした。編集できる人として招待されているか確認してください。"+tail;
   return fallback+tail;
 }
 async function submit(){
   if(!S.db||S.busy) return;
-  const note=$("noteIn").value.trim(), chips=Array.from(S.chips), veh=Array.from(S.veh), file=S.file;
-  if(!file&&!note&&!chips.length&&!veh.length){toast("写真・ひとこと・できたこと のどれかを入れてね"); return;}
+  const note=$("noteIn").value.trim(), chips=Array.from(S.chips), veh=Array.from(S.veh);
+  if(!note&&!chips.length&&!veh.length){toast("のりもの・できたこと・ひとこと のどれかを入れてね"); return;}
   S.busy=true; renderAdd();
-  let photoRef=null;
   try{
     const ref=S.db.collection("records").doc(), id=ref.id;
-    const rec={note:note,chips:chips,veh:veh,who:S.who,createdAt:Date.now(),hasPhoto:false,pts:1+((chips.length||veh.length)?2:0)};
-    if(file){
-      const p=await processPhoto(file);
-      photoRef=S.db.doc("photos/"+id);
-      await photoRef.set({data:p.full});
-      rec.hasPhoto=true; rec.thumb=p.thumb; rec.pts+=1;
-      fullCache.set(id,p.full);
-    }
+    const rec={note:note,chips:chips,veh:veh,who:S.who,createdAt:Date.now(),pts:1+((chips.length||veh.length)?2:0)};
     S.previewPts=null;
     await ref.set(rec);
     resetForm(); closeSheet(); toast("あげたよ！");
   }catch(e){
-    if(photoRef){try{await photoRef.delete();}catch(x){}}
     toast(errMsg(e,"うまく保存できませんでした。少し待ってから、もう一度ためしてください。"));
   }finally{
     S.busy=false; renderAdd();
@@ -1037,8 +933,6 @@ async function delRecord(r){
   if(!S.db) return;
   try{
     await S.db.doc("records/"+r.id).delete();
-    if(r.hasPhoto){try{await S.db.doc("photos/"+r.id).delete();}catch(x){}}
-    fullCache.delete(r.id);
     toast("消しました");
   }catch(e){toast(errMsg(e,"消せませんでした。もう一度ためしてください。"));}
 }
@@ -1578,12 +1472,6 @@ function showStamp(name,r,i,veh){
   }
   tone(SCALE[i%5]*1.2,0,.18,"triangle",.16); tone(SCALE[i%5]*1.8,.1,.2,"triangle",.1);
   const nodes=[];
-  if(r.thumb){
-    const t=document.createElement("button"); t.type="button"; t.className="th"; t.setAttribute("aria-label","しゃしんを みる");
-    const im=document.createElement("img"); im.alt=""; im.src=r.thumb; t.appendChild(im);
-    t.addEventListener("click",()=>openViewer(r));
-    nodes.push(t);
-  }
   nodes.push(textNode("「"+name+"」 "+(veh?"みつけた！":"はじめて！"),metaOf(r)+(r.note?"　"+r.note:"")));
   setDetail(nodes);
 }
@@ -1618,10 +1506,6 @@ $("bookBack").addEventListener("click",()=>{$("book").hidden=true;});
 const HAIR=[["","なし"],["fuzz","うぶ毛"],["short","ショート"],["bob","ボブ"],["long","ロング"],["bun","おだんご"],["twin","ふたつ結び"],["curly","くせ毛"]];
 const HAIRKEYS=HAIR.map(h=>h[0]).filter(Boolean);
 const HEX=/^#[0-9a-fA-F]{6}$/;
-const LOOK_PROMPT=`添付の写真は、小さな子どもの写真です。この子に似たイラストのキャラクターを作るために、見た目の特徴だけを読み取ってください。名前や人物の特定はしないでください。
-次のJSONだけを返してください（説明文は不要）。
-{"hair":"none か fuzz か short か bob か long か bun か twin か curly のどれか1つ","hairColor":"#RRGGBB（髪の色に近い色）","outfitColor":"#RRGGBB（着ている服でいちばん目立つ色。分からなければ #ef5b4b）","glasses":true または false}
-髪型の目安: none=髪がほとんどない, fuzz=うぶ毛程度, short=短い, bob=あごくらいまで, long=肩より長い, bun=頭の上で結んでいる, twin=左右で2つに結んでいる, curly=くるくるのくせ毛。`;
 function safeLook(d){
   d=d||{};
   return {
@@ -1677,9 +1561,7 @@ function renderLookUi(){
   Array.prototype.forEach.call(hairChips.children,b=>b.setAttribute("aria-pressed",String(b.dataset.k===cur.hair)));
   $("hairColorIn").value=cur.hairColor; $("bibColorIn").value=cur.bibColor;
   $("glBtn").setAttribute("aria-pressed",String(cur.glasses));
-  $("lookSave").disabled=!S.db||!S.canWrite||S.reading;
-  $("lookReadLabel").hidden=!(S.sample&&S.canImg);
-  $("lookReadText").textContent=S.reading?"読み取り中…（10〜30秒かかります）":"写真をえらんで、特徴を読み取る";
+  $("lookSave").disabled=!S.db||!S.canWrite;
 }
 const setLookNote=t=>{$("lookNote").textContent=t};
 $("hairColorIn").addEventListener("input",e=>{editLook().hairColor=e.target.value;});
@@ -1697,38 +1579,6 @@ $("lookSave").addEventListener("click",async()=>{
     closeSheet(); renderAll(); renderLookUi(); anim("a-squish"); fanfare(); say("にてるかな？"); toast(t);
   }catch(e){toast(errMsg(e,"保存できませんでした。"));}
 });
-function lookErr(e){
-  const c=e&&e.code;
-  if(c==="not_granted") return "Claudeの利用が許可されませんでした。ページを開きなおすと、もう一度確認が出ます。下の項目は手動で選べます。";
-  if(c==="image_rejected") return "この写真は読み込めませんでした。別の写真でためしてください。";
-  if(c==="refused") return "この写真は読み取れませんでした。別の写真でためすか、下の項目を手動で選んでください。";
-  if(c==="rate_limited") return "短い間に使いすぎたようです。少し時間をおいて、もう一度ためしてください。";
-  if(c==="session_expired") return "ログインの期限が切れました。ページを開きなおしてください。";
-  if(c==="invalid_json"||c==="empty_completion") return "うまく読み取れませんでした。もう一度ためすか、下の項目を手動で選んでください。";
-  return "読み取れませんでした。下の項目は手動で選べます。"+(c?"（"+c+"）":"");
-}
-function toBlob(im,max){
-  const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));
-  const c=document.createElement("canvas");
-  c.width=Math.round(im.naturalWidth*k); c.height=Math.round(im.naturalHeight*k);
-  c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error("blob")),"image/jpeg",.85));
-}
-$("lookInput").addEventListener("change",async e=>{
-  const f=e.target.files&&e.target.files[0]; e.target.value="";
-  if(!f||!S.sample||S.reading) return;
-  S.reading=true; renderLookUi();
-  setLookNote("読み取り中です。写真はClaudeに送られますが、このページには保存されません。");
-  try{
-    const im=await loadImg(f); const blob=await toBlob(im,768);
-    const r=await S.sample.json(LOOK_PROMPT,{images:blob,modelTier:"default"});
-    if(!r||typeof r!=="object") throw {code:"invalid_json"};
-    S.edit=safeLook({hair:r.hair,hairColor:r.hairColor,bibColor:r.outfitColor,glasses:r.glasses===true});
-    S.dirty=true;
-    setLookNote("読み取りました。気になるところは直して、「このすがたにする」を押してください。");
-  }catch(err){setLookNote(lookErr(err));}
-  finally{S.reading=false; renderLookUi();}
-});
 renderLookUi();
 
 /* ---------- shared data ---------- */
@@ -1737,13 +1587,6 @@ async function init(){
   const c=window.claude;
   try{S.user=await c.use("user");}catch(e){}
   try{S.db=await c.use("db");}catch(e){}
-  try{
-    S.sample=await c.use("sample");
-    if(S.sample&&typeof S.sample.limits==="function"){
-      const lim=await S.sample.limits().catch(()=>null);
-      S.canImg=!!(lim&&lim.images);
-    }
-  }catch(e){}
   renderLookUi();
   if(!S.db){setNoDb("ログインすると、ふたりで記録を共有できます。いまは遊ぶだけできます。"); return;}
   try{
