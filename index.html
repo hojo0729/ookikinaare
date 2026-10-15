@@ -1,0 +1,1827 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>おおきくなーれ</title>
+<meta name="theme-color" content="#17867E">
+<meta name="description" content="のりものが大きくなる、家族の成長きろくアプリ">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="おおきくなーれ">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@400;500;700&display=swap">
+<style>:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+</head>
+<body>
+<script src="local-db.js"></script>
+<style>
+/* Layout: one-screen toddler stage. The character sits on a glowing ground in the middle, growth meter and tappable photo bubbles below it, and all grown-up tools (record, history, settings) hide behind a long-press button that opens a bottom sheet. */
+:root{
+  --bg:#E8F6F2; --bg2:#CBEBEA; --surface:#FFFFFF; --ink:#1D3B3A; --muted:#58757A; --line:#C4DFDB;
+  --body:#FFC94A; --body-shade:#F0A93A; --cheek:#FF8FA3; --leaf:#47B36B; --egg:#FFF6E3; --mouth:#8A3B4A; --face:#2B2A33;
+  --accent:#17867E; --accent-ink:#FFFFFF; --pop:#FF6F59; --danger:#C93C3C;
+  --display:"Mochiy Pop One","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --text:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1E22; --bg2:#173540; --surface:#18292E; --ink:#E7F4F1; --muted:#93B4B0; --line:#2B454B;
+    --body:#FFD166; --body-shade:#EBA83C; --cheek:#FF93A6; --leaf:#6BD88C; --egg:#EADFC6;
+    --accent:#4CC9BD; --accent-ink:#06211E; --pop:#FF8A73; --danger:#FF7A7A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1E22; --bg2:#173540; --surface:#18292E; --ink:#E7F4F1; --muted:#93B4B0; --line:#2B454B;
+  --body:#FFD166; --body-shade:#EBA83C; --cheek:#FF93A6; --leaf:#6BD88C; --egg:#EADFC6;
+  --accent:#4CC9BD; --accent-ink:#06211E; --pop:#FF8A73; --danger:#FF7A7A;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--text);font-size:15px;line-height:1.6;-webkit-tap-highlight-color:transparent}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+.app{min-height:100%;max-width:520px;margin-inline:auto;padding-inline:16px;padding-block:12px 14px;display:flex;flex-direction:column;gap:12px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{margin:0;font-family:var(--display);font-weight:400;font-size:25px;line-height:1.2;letter-spacing:.02em;text-wrap:balance}
+.adult{position:relative;flex:none;width:60px;height:60px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.adult-in{display:grid;justify-items:center;gap:1px;font-size:10px;line-height:1.1;color:var(--muted);font-weight:700;pointer-events:none}
+.adult-in svg{width:22px;height:22px;display:block}
+.pers{fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ring{position:absolute;left:-5px;top:-5px;width:calc(100% + 10px);height:calc(100% + 10px);transform:rotate(-90deg);pointer-events:none}
+.ring circle{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-dasharray:196;stroke-dashoffset:196}
+.adult.holding .ring circle{animation:hold .9s linear forwards}
+@keyframes hold{to{stroke-dashoffset:0}}
+
+/* stage */
+.stage{position:relative;flex:1;min-height:330px;border-radius:36px;border:2px solid var(--line);overflow:hidden;display:flex;align-items:flex-end;justify-content:center;padding-bottom:22px;touch-action:manipulation;user-select:none;-webkit-user-select:none;
+  background:radial-gradient(120% 80% at 50% 105%,var(--bg2) 0%,transparent 72%),color-mix(in srgb,var(--surface) 60%,var(--bg))}
+.stage::before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;background:var(--bg2);opacity:.55;top:-40px;right:-30px}
+.stage::after{content:"";position:absolute;width:70px;height:70px;border-radius:50%;background:var(--bg2);opacity:.6;left:18px;top:110px}
+.ground{--road:#596873;--roadline:#FFF1B8;position:absolute;left:0;right:0;bottom:0;height:46px;border-top:3px solid #7A8893;background:repeating-linear-gradient(90deg,var(--roadline) 0 26px,transparent 26px 52px) center 60%/100% 4px no-repeat,var(--road)}
+.bubble{position:absolute;top:16px;left:50%;transform:translateX(-50%);max-width:calc(100% - 156px);background:var(--surface);border:2px solid var(--line);border-radius:22px;padding:8px 16px;font-family:var(--display);font-size:18px;line-height:1.35;text-align:center;z-index:2}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-9px;width:14px;height:14px;background:var(--surface);border:2px solid var(--line);border-top:0;border-left:0;transform:translateX(-50%) rotate(45deg)}
+.bubble.pop{animation:popin .3s ease-out}
+@keyframes popin{0%{transform:translateX(-50%) scale(.85)}60%{transform:translateX(-50%) scale(1.06)}100%{transform:translateX(-50%) scale(1)}}
+
+.charaWrap{position:relative;z-index:1;width:min(68%,300px);aspect-ratio:240/268;padding:0;border:0;background:none;transform:scale(var(--s,.7));transform-origin:50% 100%;transition:transform .9s cubic-bezier(.3,1.5,.5,1);touch-action:manipulation}
+.bob{display:block;animation:bob 3.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.hero{display:block;width:100%;height:auto;overflow:visible;transform-origin:50% 100%}
+.hero.a-squish{animation:squish .45s ease-out}
+.hero.a-wobble{animation:wobble .6s ease-in-out}
+.hero.a-dance{animation:dance 1s ease-in-out}
+@keyframes squish{0%{transform:scale(1,1)}30%{transform:scale(1.16,.82)}60%{transform:scale(.92,1.12) translateY(-10px)}100%{transform:scale(1,1)}}
+@keyframes wobble{0%,100%{transform:rotate(0)}20%{transform:rotate(-9deg)}50%{transform:rotate(8deg)}75%{transform:rotate(-4deg)}}
+@keyframes dance{0%,100%{transform:rotate(0) translateY(0)}15%{transform:rotate(-12deg) translateY(-18px)}35%{transform:rotate(12deg) translateY(-6px)}55%{transform:rotate(-12deg) translateY(-18px)}75%{transform:rotate(10deg) translateY(-4px)}}
+
+/* character parts */
+.f-body{fill:var(--body)} .f-shade{fill:var(--body-shade)} .f-cheek{fill:var(--cheek)} .f-leaf{fill:var(--leaf)}
+.f-egg{fill:var(--egg)} .f-face{fill:var(--face)} .f-mouth{fill:var(--mouth)} .f-white{fill:#fff}
+.s-face{fill:none;stroke:var(--face);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.s-leaf{fill:none;stroke:var(--leaf);stroke-width:4;stroke-linecap:round}
+.crack{fill:none;stroke:var(--muted);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.eyeg{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.mouth-open{display:none}
+.hero.talk .mouth-open{display:inline}
+.hero.talk .mouth-smile{display:none}
+.halo-ring{fill:none;stroke:var(--body);stroke-width:3;stroke-dasharray:2 11;stroke-linecap:round;opacity:.8;transform-box:fill-box;transform-origin:center;animation:spin 24s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spark{transform-box:fill-box;transform-origin:center;animation:twinkle 2.4s ease-in-out infinite}
+@keyframes twinkle{50%{transform:scale(.4);opacity:.5}}
+.hero .egg,.hero .vh,.hero .halo,.hero .sparks,.hero .crack{display:none}
+.hero[data-stage="0"] .egg{display:inline}
+.hero[data-stage="0"][data-crack="1"] .crack{display:inline}
+.hero[data-stage="1"] .v1,.hero[data-stage="2"] .v2,.hero[data-stage="3"] .v3,.hero[data-stage="4"] .v4{display:inline}
+.hero[data-stage="4"] :is(.halo,.sparks){display:inline}
+
+/* look: hair, bib, glasses (set from the child's photo) */
+.hair-fill{fill:var(--hair,#4a3426);stroke:var(--face);stroke-opacity:.45;stroke-width:1.5}
+.hair-line{fill:none;stroke:var(--hair,#4a3426);stroke-width:3.5;stroke-linecap:round}
+.outfit-fill{fill:var(--outfit,#6fb7e9);stroke:var(--face);stroke-opacity:.35;stroke-width:1.5}
+.gl{fill:none;stroke:var(--face);stroke-width:3;stroke-linecap:round}
+/* vehicles: paint classes (the outline comes from .o on the group) */
+.vc{fill:var(--outfit,#ef5b4b)}
+.vw{fill:#F4F6F8}
+.vt{fill:#3A3F4B}
+.vg{fill:#CFEAF7}
+.vv{fill:#1F3A5F}
+.vl{fill:#FFE27A}
+.vs{fill:#C7CFD6}
+.ns{stroke:none}
+.s-white{fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round}
+.drvface{fill:#FFD9B8;stroke:var(--face);stroke-opacity:.55;stroke-width:6}
+.drv .hair-line{stroke-width:9}
+.drv .s-face{stroke-width:9}
+.drv .gl{stroke-width:7}
+.drv .f-cheek,.drv .f-face{stroke:none}
+.hero.a-vroom{animation:drive 1.2s ease-in-out}
+@keyframes drive{0%{transform:translateX(0)}38%{transform:translateX(175%) skewX(-8deg)}39%{transform:translateX(-175%) skewX(8deg)}100%{transform:translateX(0) skewX(0)}}
+.ptabs.row{flex:none}
+.seal svg{width:80%;height:80%;display:block}
+
+/* settings: look editor */
+.pickbtn{display:grid;place-items:center;text-align:center;cursor:pointer;position:relative;padding:12px;line-height:1.4}
+.pickbtn:focus-within{outline:3px solid var(--accent);outline-offset:3px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.two>div{min-width:0}
+.color{width:100%;height:46px;border:2px solid var(--line);border-radius:14px;background:var(--bg);padding:4px}
+
+/* effects */
+.star{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);pointer-events:none;z-index:3;animation:fly-out .9s ease-out forwards}
+@keyframes fly-out{0%{transform:translate(0,0) scale(.4) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.1) rotate(var(--r));opacity:0}}
+.banner{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-family:var(--display);font-size:clamp(28px,9vw,40px);color:var(--pop);text-align:center;pointer-events:none;white-space:nowrap;z-index:4;text-shadow:0 3px 0 var(--surface);animation:banner 2s ease-out forwards}
+@keyframes banner{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(1)}}
+.fly{position:absolute;left:50%;bottom:6px;width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid var(--surface);z-index:3;pointer-events:none;animation:flyin .8s ease-in forwards}
+@keyframes flyin{0%{transform:translate(-50%,40px) scale(1);opacity:1}100%{transform:translate(-50%,-150px) scale(.2);opacity:0}}
+
+/* meter */
+.meter{display:grid;gap:8px}
+.meter-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pill{background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:3px 14px;font-weight:700;font-size:14px}
+.count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.track{height:16px;border-radius:999px;background:var(--bg2);overflow:hidden;border:2px solid var(--line)}
+.fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--body),var(--pop));transition:width .8s ease}
+.next{margin:0;font-size:14px;font-weight:500}
+
+/* photo bubbles */
+.photos{min-height:84px}
+.strip{display:flex;align-items:center;gap:12px;overflow-x:auto;padding:6px 4px 10px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.pb{flex:none;width:68px;height:68px;border-radius:50%;padding:0;border:3px solid var(--surface);background:var(--bg2);box-shadow:0 0 0 2px var(--line);overflow:hidden}
+.pb img{width:100%;height:100%;object-fit:cover;display:block}
+.pb:active{transform:scale(.94)}
+.ghost{flex:none;width:56px;height:56px;border-radius:50%;border:2px dashed var(--line)}
+.ghost-note{margin:0;color:var(--muted);font-size:13px;line-height:1.5;min-width:0}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 45%,transparent);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{width:100%;max-width:520px;max-height:86%;background:var(--surface);border-radius:28px 28px 0 0;display:flex;flex-direction:column;gap:12px;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));animation:rise .25s ease-out}
+@keyframes rise{from{transform:translateY(40px);opacity:0}}
+.sh-head{display:flex;align-items:center;gap:8px}
+.tabs{display:flex;gap:4px;flex:1;min-width:0;background:var(--bg);border-radius:999px;padding:4px}
+.tab{flex:1;min-width:0;border:0;background:none;border-radius:999px;padding:8px 6px;font-weight:700;font-size:14px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 25%,transparent)}
+.x{flex:none;width:40px;height:40px;border-radius:50%;border:2px solid var(--line);background:none;font-size:18px;line-height:1;padding:0}
+.panel{overflow-y:auto;display:grid;gap:16px;padding-bottom:4px;align-content:start}
+.lab{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700;margin:0 0 6px}
+.drop{position:relative;display:grid;place-items:center;gap:6px;min-height:112px;border:2px dashed var(--line);border-radius:20px;color:var(--muted);text-align:center;padding:12px;cursor:pointer;overflow:hidden}
+.drop:focus-within{outline:3px solid var(--accent);outline-offset:3px}
+.drop img{max-width:100%;max-height:200px;border-radius:12px;display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--line);background:none;border-radius:999px;padding:6px 14px;font-weight:500;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--body);border-color:var(--body-shade);color:var(--face);font-weight:700}
+textarea,input[type=text],input[type=date]{width:100%;border:2px solid var(--line);border-radius:14px;background:var(--bg);padding:10px 12px;min-height:44px}
+textarea{min-height:76px;resize:vertical}
+.seg{display:flex;gap:6px}
+.seg button,.wide{border:2px solid var(--line);background:none;border-radius:14px;padding:8px;font-weight:700;min-height:44px}
+.seg button{flex:1}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.go{border:0;background:var(--accent);color:var(--accent-ink);border-radius:18px;min-height:54px;font-weight:700;font-size:17px;padding:0 16px}
+.go:disabled{opacity:.45;cursor:default}
+.note{color:var(--muted);font-size:13px;margin:0;line-height:1.6}
+.warn{background:color-mix(in srgb,var(--pop) 14%,var(--surface));border-radius:12px;padding:10px 12px;font-size:13px;margin:0}
+.row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}
+.th{width:56px;height:56px;border-radius:14px;overflow:hidden;border:0;padding:0;background:var(--bg2);display:grid;place-items:center;color:var(--muted);font-weight:700}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.txt{margin:2px 0 4px;overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:11px;background:var(--bg);border-radius:999px;padding:1px 8px;color:var(--muted)}
+.del{border:0;background:none;color:var(--muted);font-size:12px;padding:6px}
+.del.armed{color:var(--danger);font-weight:700}
+
+/* viewer + toast */
+.viewer{position:fixed;inset:0;z-index:30;background:color-mix(in srgb,var(--ink) 88%,transparent);display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px;place-items:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));cursor:pointer}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain;border-radius:20px;transition:filter .3s}
+.viewer img.blur{filter:blur(6px)}
+.vcap{color:var(--bg);text-align:center;font-size:15px;max-width:420px;margin:0;overflow-wrap:anywhere}
+.vcap small{display:block;opacity:.75;font-size:12px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:40;max-width:90%;text-align:center}
+
+/* stage shortcut buttons */
+.sbtn{position:absolute;top:12px;z-index:2;width:58px;height:58px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;font-size:10px;font-weight:700;color:var(--muted);line-height:1.1;touch-action:manipulation}
+.sbtn svg{width:24px;height:24px;display:block}
+.sbtn-l{left:12px}
+.sbtn-r{right:12px}
+.ico{fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.icof{fill:var(--ink)}
+
+/* full-screen play and stamp book */
+.ov{position:fixed;inset:0;z-index:15;background:var(--bg);padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
+.ov-in{width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.ov-head{display:flex;align-items:center;gap:12px}
+.ov-title{margin:0;flex:1;min-width:0;font-family:var(--display);font-weight:400;font-size:22px;line-height:1.25}
+.back{flex:none;width:60px;height:60px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
+.back svg{width:28px;height:28px}
+.zoo{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(0,1fr));gap:12px}
+.tile{position:relative;min-height:0;min-width:0;border:2px solid var(--line);border-radius:28px;padding:10px 8px 8px;display:grid;grid-template-rows:minmax(0,1fr) auto;justify-items:center;gap:2px;background:color-mix(in srgb,var(--tint) 18%,var(--surface));touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.tile svg{height:100%;max-width:100%;aspect-ratio:1;display:block;min-height:0}
+.tile .nm{font-family:var(--display);font-size:17px;line-height:1.2}
+.tile.hit svg{animation:squish .45s ease-out}
+.cry{position:absolute;top:8px;left:0;right:0;text-align:center;font-family:var(--display);font-size:20px;color:var(--pop);pointer-events:none;opacity:0;text-shadow:0 2px 0 var(--surface)}
+.cry.on{animation:cry 1s ease-out forwards}
+@keyframes cry{0%{opacity:0;transform:translateY(8px) scale(.7)}20%{opacity:1;transform:translateY(0) scale(1.1)}70%{opacity:1}100%{opacity:0;transform:translateY(-22px) scale(1)}}
+.wh{transform-box:fill-box;transform-origin:center}
+.tile.hit .wh{animation:wspin .6s ease-out}
+@keyframes wspin{to{transform:rotate(900deg)}}
+.fan{transform-box:fill-box;transform-origin:center;animation:wspin 1.4s linear infinite}
+@media (prefers-reduced-motion:reduce){.fan,.tile.hit .wh{animation:none}}
+.o{stroke:var(--face);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.m{fill:none;stroke:var(--face);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.ff{fill:var(--face)}
+.stamps{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 10px;padding:6px 2px;align-content:start}
+.stamp{display:grid;justify-items:center;gap:4px;background:none;border:0;padding:0;min-width:0}
+.seal{width:100%;max-width:76px;aspect-ratio:1;border-radius:50%;border:4px solid var(--c);color:var(--c);display:grid;place-items:center;font-family:var(--display);font-size:30px;line-height:1;background:color-mix(in srgb,var(--c) 10%,var(--surface));box-shadow:inset 0 0 0 3px var(--surface),inset 0 0 0 5px color-mix(in srgb,var(--c) 70%,transparent)}
+.stamp.off .seal{border-style:dashed;border-color:var(--line);color:var(--line);background:none;box-shadow:none;font-size:26px}
+.snm{font-size:11px;line-height:1.3;text-align:center;overflow-wrap:anywhere;font-weight:700}
+.stamp.off .snm{color:var(--muted);font-weight:500}
+.bookDetail{display:flex;align-items:center;gap:12px;min-height:76px;background:var(--surface);border:2px solid var(--line);border-radius:20px;padding:10px 14px}
+.dtxt{margin:0;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.dtxt small{display:block;color:var(--muted);font-size:12px}
+.ptabs{flex:1;display:flex;gap:8px;min-width:0}
+.ptabs button{flex:1;min-width:0;height:52px;border:2px solid var(--line);background:var(--surface);border-radius:999px;font-family:var(--display);font-size:17px;padding:0 8px}
+.ptabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tile .nm{text-align:center}
+#play .ptabs{gap:6px;overflow-x:auto;scrollbar-width:none}
+#play .ptabs::-webkit-scrollbar{display:none}
+#play .ptabs button{flex:none;min-width:74px;font-size:13px;padding:0 10px;white-space:nowrap}
+.game{grid-column:1/-1;display:flex;flex-direction:column;gap:10px;min-height:0}
+.gscene{--off:0px;position:relative;flex:1;min-height:0;border-radius:28px;border:2px solid var(--line);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;background:linear-gradient(#A9DCFA,#E6F7FF 62%)}
+.gscene.sea{background:linear-gradient(#B8E4FB,#E6F7FF 58%)}
+.gsun{position:absolute;right:18px;top:16px;width:46px;height:46px;border-radius:50%;background:#FFD54A;box-shadow:0 0 0 8px rgba(255,213,74,.3)}
+.gground{position:absolute;left:0;right:0;bottom:0;height:40%;border-top:3px solid #7A8893;background:linear-gradient(90deg,#FFF1B8 50%,transparent 50%) 0 50%/90px 6px repeat-x,#596873}
+.gscene.rail .gground{border-top-color:#6b5a48;background:linear-gradient(#9AA5B1,#9AA5B1) 0 34%/100% 5px no-repeat,linear-gradient(#9AA5B1,#9AA5B1) 0 66%/100% 5px no-repeat,linear-gradient(90deg,#5b4636 0 14px,transparent 14px) 0 50%/36px 78% repeat-x,#A7916F}
+.gscene.sea .gground{border-top-color:#2F86C2;background:radial-gradient(circle at 24px 0,transparent 15px,rgba(255,255,255,.55) 16px 19px,transparent 20px) 0 0/48px 26px repeat,radial-gradient(circle at 24px 0,transparent 15px,rgba(255,255,255,.4) 16px 19px,transparent 20px) 24px 13px/48px 26px repeat,#4DA3E0}
+.gitem{position:absolute;left:0;pointer-events:none}
+.gitem svg{display:block;width:100%;height:auto}
+.gveh{position:absolute;left:0;top:0;pointer-events:none;transform-origin:50% 60%;will-change:transform}
+.gveh svg{width:100%;height:100%;display:block}
+.gveh.moving .wh{animation:wroll .45s linear infinite}
+@keyframes wroll{to{transform:rotate(360deg)}}
+.gveh.hop svg{animation:squish .45s ease-out}
+.gstar{position:absolute;left:0;top:0;width:44px;height:44px;pointer-events:none}
+.gstar svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 2px rgba(0,0,0,.2))}
+.gscore{position:absolute;left:14px;top:12px;font-family:var(--display);font-size:22px;color:#1D3B3A;background:rgba(255,255,255,.85);border-radius:999px;padding:2px 14px;pointer-events:none}
+.ghint{position:absolute;left:0;right:0;top:44%;margin:0;text-align:center;font-family:var(--display);font-size:24px;color:#1D3B3A;opacity:.75;pointer-events:none}
+.gcry{position:absolute;transform:translate(-50%,0);font-family:var(--display);font-size:24px;color:var(--pop);text-shadow:0 2px 0 #fff;pointer-events:none;animation:cry 1s ease-out forwards;white-space:nowrap}
+.gpick{flex:none;display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.gpick::-webkit-scrollbar{display:none}
+.gpick button{flex:none;width:64px;height:64px;border-radius:20px;border:2px solid var(--line);background:var(--surface);padding:6px}
+.gpick button svg{width:100%;height:100%;display:block}
+.gpick button[aria-pressed="true"]{border-color:var(--accent);border-width:4px;background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.qprompt{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;min-height:76px;border:2px solid var(--line);border-radius:28px;background:var(--surface);font-family:var(--display);font-size:20px}
+.tile.no{opacity:.35}
+.tile.ok{border-color:var(--accent);border-width:4px}
+.tile.ve.hit svg{animation:vroom .6s ease-out}
+@keyframes vroom{0%{transform:translateX(0)}30%{transform:translateX(14px) rotate(-2deg)}60%{transform:translateX(-8px)}100%{transform:translateX(0)}}
+@media (prefers-reduced-motion:reduce){.tile.hit svg,.tile.ve.hit svg,.cry.on{animation-duration:.01s}}
+
+@media (prefers-reduced-motion:reduce){
+  .bob,.eyeg,.halo-ring,.spark{animation:none}
+  .hero.a-squish,.hero.a-wobble,.hero.a-dance,.hero.a-vroom,.star,.fly,.bubble.pop,.sheet{animation-duration:.01s}
+  .charaWrap,.fill,.sprout{transition:none}
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1 class="brand">おおきくなーれ</h1>
+    <button class="adult" id="adultBtn" type="button" aria-label="おとな向けメニュー。長押しで開きます">
+      <svg class="ring" viewBox="0 0 68 68" aria-hidden="true"><circle cx="34" cy="34" r="31"/></svg>
+      <span class="adult-in">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="pers" cx="12" cy="8" r="3.6"/><path class="pers" d="M4.5 20c.8-4 3.6-6 7.5-6s6.7 2 7.5 6"/></svg>
+        <span>ながおし</span>
+      </span>
+    </button>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<linearGradient id="glassG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EAF8FF"/><stop offset=".55" stop-color="#9FD0EE"/><stop offset="1" stop-color="#5E9FCB"/></linearGradient>
+<filter id="glossS" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="b"/><feDiffuseLighting in="b" surfaceScale="2.4" diffuseConstant="1.25" lighting-color="#fff" result="d"><feDistantLight azimuth="235" elevation="58"/></feDiffuseLighting><feComposite in="SourceGraphic" in2="d" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="lit"/><feSpecularLighting in="b" surfaceScale="2.4" specularConstant=".6" specularExponent="20" lighting-color="#fff" result="sp"><fePointLight x="12" y="-18" z="55"/></feSpecularLighting><feComposite in="sp" in2="SourceAlpha" operator="in" result="sp2"/><feComposite in="lit" in2="sp2" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/></filter>
+<filter id="glossH" x="-6%" y="-6%" width="112%" height="112%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="2.6" result="b"/><feDiffuseLighting in="b" surfaceScale="5" diffuseConstant="1.25" lighting-color="#fff" result="d"><feDistantLight azimuth="235" elevation="58"/></feDiffuseLighting><feComposite in="SourceGraphic" in2="d" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="lit"/><feSpecularLighting in="b" surfaceScale="5" specularConstant=".55" specularExponent="22" lighting-color="#fff" result="sp"><fePointLight x="40" y="-50" z="130"/></feSpecularLighting><feComposite in="sp" in2="SourceAlpha" operator="in" result="sp2"/><feComposite in="lit" in2="sp2" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/></filter>
+</defs></svg>
+  <main class="stage" id="stage">
+    <button class="sbtn sbtn-l" id="btnPlay" type="button" aria-label="どうぶつと のりもので あそぶ">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico" d="M4.5 12L7 6.5H17L19.5 12"/><rect class="ico" x="3" y="12" width="18" height="6.5" rx="2.4"/><circle class="icof" cx="7.5" cy="15.2" r="1.3"/><circle class="icof" cx="16.5" cy="15.2" r="1.3"/></svg>
+      <span>あそぶ</span>
+    </button>
+    <button class="sbtn sbtn-r" id="btnBook" type="button" aria-label="ずかん">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="ico" cx="12" cy="12" r="9"/><path class="ico" d="M8 12.5l3 3 5-6"/></svg>
+      <span>ずかん</span>
+    </button>
+    <div class="bubble" id="bubble">…すやすや</div>
+    <div class="ground"></div>
+    <button class="charaWrap" id="charaBtn" type="button" aria-label="キャラクターをタップして あそぶ">
+      <span class="bob">
+        <svg class="hero" id="hero" viewBox="0 -28 240 268" data-stage="0" data-crack="0" aria-hidden="true">
+          <g class="halo"><circle class="halo-ring" cx="120" cy="120" r="112"/></g>
+          <g class="sparks">
+            <g transform="translate(26 36)"><path class="spark f-body" d="M0 -8L2.4 -2.4L8 0L2.4 2.4L0 8L-2.4 2.4L-8 0L-2.4 -2.4Z"/></g>
+            <g transform="translate(212 58)"><path class="spark f-cheek" d="M0 -8L2.4 -2.4L8 0L2.4 2.4L0 8L-2.4 2.4L-8 0L-2.4 -2.4Z"/></g>
+            <g transform="translate(218 176)"><path class="spark f-body" d="M0 -8L2.4 -2.4L8 0L2.4 2.4L0 8L-2.4 2.4L-8 0L-2.4 -2.4Z"/></g>
+            <g transform="translate(22 188)"><path class="spark f-cheek" d="M0 -8L2.4 -2.4L8 0L2.4 2.4L0 8L-2.4 2.4L-8 0L-2.4 -2.4Z"/></g>
+          </g>
+
+          <g class="egg">
+            <path class="f-egg" d="M120 28C168 28 198 96 198 150C198 196 164 216 120 216C76 216 42 196 42 150C42 96 72 28 120 28Z"/>
+            <circle class="f-body" cx="92" cy="84" r="11" opacity=".85"/>
+            <circle class="f-body" cx="152" cy="108" r="14" opacity=".85"/>
+            <circle class="f-body" cx="108" cy="186" r="12" opacity=".85"/>
+            <path class="s-face" d="M82 142q9 8 18 0"/>
+            <path class="s-face" d="M140 142q9 8 18 0"/>
+            <path class="s-face" d="M112 160q8 6 16 0"/>
+            <ellipse class="f-cheek" cx="72" cy="158" rx="11" ry="6.5" opacity=".7"/>
+            <ellipse class="f-cheek" cx="168" cy="158" rx="11" ry="6.5" opacity=".7"/>
+            <path class="crack" d="M102 34l11 17-13 12 15 15"/>
+          </g>
+
+          <g class="vh v1 o" filter="url(#glossH)">
+            <g class="drv" transform="translate(120 44)"></g>
+            <rect class="vc" x="22" y="98" width="22" height="14" rx="6"/><rect class="vc" x="196" y="98" width="22" height="14" rx="6"/><rect class="vt" x="44" y="168" width="34" height="46" rx="12"/>
+            <rect class="vt" x="162" y="168" width="34" height="46" rx="12"/>
+            <path class="vc" d="M66 130L80 76Q83 64 98 64H142Q157 64 160 76L174 130Z"/>
+            <rect class="vc" x="36" y="112" width="168" height="96" rx="34"/>
+            <path class="vg" d="M80 124L88 80Q89 74 97 74H143Q151 74 152 80L160 124Z"/>
+            <ellipse class="f-white ns" cx="64" cy="130" rx="14" ry="6" opacity=".4" transform="rotate(-24 64 130)"/>
+            <g class="eyeg"><circle class="f-white" cx="102" cy="100" r="14"/><circle class="f-face ns" cx="104" cy="102" r="7"/></g>
+            <g class="eyeg"><circle class="f-white" cx="138" cy="100" r="14"/><circle class="f-face ns" cx="140" cy="102" r="7"/></g>
+            <circle class="vs" cx="58" cy="154" r="15"/><circle class="vl" cx="58" cy="154" r="10.5"/><circle class="f-white ns" cx="54" cy="150" r="3.5" opacity=".85"/><circle class="vs" cx="182" cy="154" r="15"/><circle class="vl" cx="182" cy="154" r="10.5"/><circle class="f-white ns" cx="178" cy="150" r="3.5" opacity=".85"/><path class="m" style="stroke:#3A3F4B;stroke-width:2.6" d="M92 119L124 110M148 119L130 111"/>
+            <ellipse class="f-cheek ns" cx="84" cy="170" rx="9" ry="5.5" opacity=".85"/>
+            <ellipse class="f-cheek ns" cx="156" cy="170" rx="9" ry="5.5" opacity=".85"/>
+            <path class="s-white mouth-smile" d="M100 162Q120 182 140 162"/>
+            <ellipse class="f-mouth mouth-open" cx="120" cy="172" rx="14" ry="12"/>
+            <rect class="vs" x="56" y="194" width="128" height="14" rx="7"/><rect class="f-white" x="102" y="196" width="36" height="10" rx="2.5"/><path class="m" style="stroke-width:1.6" d="M108 201H114M120 201H126M131 201H133"/>
+          </g>
+
+          <g class="vh v2 o" filter="url(#glossH)">
+            <g class="drv" transform="translate(120 12)"></g>
+            <rect class="vt" x="58" y="204" width="124" height="12" rx="5"/><rect class="vs" x="108" y="206" width="24" height="12" rx="3"/>
+            <path class="vw" d="M50 76Q50 32 92 32H148Q190 32 190 76V192Q190 206 176 206H64Q50 206 50 192Z"/>
+            <rect class="vc" x="50" y="152" width="140" height="22"/>
+            <rect class="vg" x="66" y="54" width="108" height="76" rx="24"/><rect x="90" y="36" width="60" height="11" rx="3.5" fill="#1F3A5F"/><rect class="ns" x="96" y="39.5" width="22" height="4" rx="1.5" fill="#FF8A3D"/><rect class="ns" x="122" y="39.5" width="22" height="4" rx="1.5" fill="#8CE0A8"/><path class="m" style="stroke:#8D99A6;stroke-width:2.6" d="M58 62V140M182 62V140"/><path class="m" style="stroke:#3A3F4B;stroke-width:2.6" d="M86 128L116 120M154 128L132 120"/>
+            <g class="eyeg"><circle class="f-white" cx="97" cy="90" r="16"/><circle class="f-face ns" cx="99" cy="92" r="8"/></g>
+            <g class="eyeg"><circle class="f-white" cx="143" cy="90" r="16"/><circle class="f-face ns" cx="145" cy="92" r="8"/></g>
+            <ellipse class="f-cheek ns" cx="78" cy="142" rx="9" ry="5.5" opacity=".85"/>
+            <ellipse class="f-cheek ns" cx="162" cy="142" rx="9" ry="5.5" opacity=".85"/>
+            <path class="s-face mouth-smile" d="M104 138Q120 152 136 138"/>
+            <ellipse class="f-mouth mouth-open" cx="120" cy="143" rx="10" ry="9"/>
+            <circle class="vs" cx="76" cy="190" r="12"/><circle class="vl" cx="76" cy="190" r="8"/><circle class="f-white ns" cx="73" cy="187" r="2.6"/><circle class="vs" cx="164" cy="190" r="12"/><circle class="vl" cx="164" cy="190" r="8"/><circle class="f-white ns" cx="161" cy="187" r="2.6"/>
+            <rect class="f-white" x="104" y="182" width="32" height="14" rx="3"/>
+          </g>
+
+          <g class="vh v3 o" filter="url(#glossH)">
+            <g class="drv" transform="translate(120 14)"></g>
+            <rect class="vt" x="58" y="204" width="124" height="12" rx="5"/>
+            <path class="vw" d="M38 150Q38 46 120 32Q202 46 202 150V190Q202 206 186 206H54Q38 206 38 190Z"/>
+            <path class="vc" d="M38 150H202V190Q202 206 186 206H54Q38 206 38 190Z"/>
+            <path class="vv" d="M60 84Q120 58 180 84V124Q120 144 60 124Z"/><path class="m" style="stroke:#fff;stroke-opacity:.5;stroke-width:2.4" d="M72 90Q96 78 118 76"/><path class="m" style="stroke:#3A3F4B;stroke-width:2.6" d="M80 132L112 122M160 132L130 122"/><path class="vs" d="M92 206Q120 226 148 206Z"/>
+            <g class="eyeg"><circle class="f-white" cx="94" cy="104" r="15"/><circle class="f-face ns" cx="96" cy="106" r="7.5"/></g>
+            <g class="eyeg"><circle class="f-white" cx="146" cy="104" r="15"/><circle class="f-face ns" cx="148" cy="106" r="7.5"/></g>
+            <rect class="vl" x="46" y="168" width="32" height="13" rx="6.5"/><rect class="f-white ns" x="52" y="171" width="12" height="3.5" rx="1.7" opacity=".9"/><rect class="vl" x="162" y="168" width="32" height="13" rx="6.5"/><rect class="f-white ns" x="168" y="171" width="12" height="3.5" rx="1.7" opacity=".9"/>
+            <path class="s-white mouth-smile" d="M102 172Q120 190 138 172"/>
+            <ellipse class="f-mouth mouth-open" cx="120" cy="180" rx="12" ry="11"/>
+          </g>
+
+          <g class="vh v4 o" filter="url(#glossH)">
+            <g class="drv" transform="translate(120 30)"></g>
+            <rect class="vs" x="90" y="180" width="8" height="26"/>
+            <rect class="vs" x="142" y="180" width="8" height="26"/>
+            <circle class="vt" cx="94" cy="206" r="10"/>
+            <circle class="vt" cx="146" cy="206" r="10"/>
+            <rect class="vc" x="6" y="108" width="228" height="28" rx="14"/>
+            <circle class="vs" cx="46" cy="156" r="17"/><circle class="vt" cx="46" cy="156" r="12"/><g class="fan"><path class="m" style="stroke:#9aa5b1;stroke-width:3" d="M46 146V166M36 156H56M39 149L53 163M53 149L39 163"/></g><circle class="vs" cx="46" cy="156" r="4"/>
+            <circle class="vs" cx="194" cy="156" r="17"/><circle class="vt" cx="194" cy="156" r="12"/><g class="fan"><path class="m" style="stroke:#9aa5b1;stroke-width:3" d="M194 146V166M184 156H204M187 149L201 163M201 149L187 163"/></g><circle class="vs" cx="194" cy="156" r="4"/>
+            <circle class="vw" cx="120" cy="118" r="72"/>
+            <path class="m" style="stroke:var(--outfit,#ef5b4b);stroke-width:5" d="M60 158Q120 176 180 158"/><path class="vv" d="M70 96Q120 62 170 96V124Q120 140 70 124Z"/><path class="m" style="stroke:#fff;stroke-opacity:.5;stroke-width:2.4" d="M82 98Q104 82 124 80"/><circle cx="14" cy="122" r="4.5" fill="#E53935" stroke="none"/><circle cx="226" cy="122" r="4.5" fill="#43C06C" stroke="none"/>
+            <g class="eyeg"><circle class="f-white" cx="96" cy="108" r="14"/><circle class="f-face ns" cx="98" cy="110" r="7"/></g>
+            <g class="eyeg"><circle class="f-white" cx="144" cy="108" r="14"/><circle class="f-face ns" cx="146" cy="110" r="7"/></g>
+            <ellipse class="f-cheek ns" cx="82" cy="148" rx="9" ry="5.5" opacity=".85"/>
+            <ellipse class="f-cheek ns" cx="158" cy="148" rx="9" ry="5.5" opacity=".85"/>
+            <path class="s-face mouth-smile" d="M104 150Q120 166 136 150"/>
+            <ellipse class="f-mouth mouth-open" cx="120" cy="157" rx="10" ry="9"/>
+          </g>
+        </svg>
+      </span>
+    </button>
+  </main>
+
+  <section class="meter" aria-label="せいちょう">
+    <div class="meter-top">
+      <span class="pill" id="stagePill">ぶーぶー ・ たまご</span>
+      <span class="count" id="countLabel">きろく 0こ</span>
+    </div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <p class="next" id="nextLabel"></p>
+  </section>
+
+  <section class="photos" aria-label="しゃしん">
+    <div class="strip" id="strip"></div>
+  </section>
+</div>
+
+<div class="ov" id="play" hidden>
+  <div class="ov-in">
+    <div class="ov-head">
+      <button class="back" id="playBack" type="button" aria-label="もどる"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico" d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="ptabs" role="group" aria-label="えらぶ">
+        <button id="tabRide" type="button" aria-pressed="true">のりもの</button>
+        <button id="tabWork" type="button" aria-pressed="false">はたらく</button>
+        <button id="tabGame" type="button" aria-pressed="false">ドライブ</button>
+        <button id="tabQuiz" type="button" aria-pressed="false">クイズ</button>
+        <button id="tabAn" type="button" aria-pressed="false">どうぶつ</button>
+      </div>
+    </div>
+    <div class="zoo" id="zoo"></div>
+  </div>
+</div>
+
+<div class="ov" id="book" hidden>
+  <div class="ov-in">
+    <div class="ov-head">
+      <button class="back" id="bookBack" type="button" aria-label="もどる"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico" d="M15 5l-7 7 7 7"/></svg></button>
+      <h2 class="ov-title">ずかん</h2>
+      <span class="count" id="bookCount"></span>
+    </div>
+    <div class="ptabs row" role="group" aria-label="ずかんの しゅるい">
+      <button id="bkSkill" type="button" aria-pressed="true">できたこと</button>
+      <button id="bkVeh" type="button" aria-pressed="false">のりもの</button>
+    </div>
+    <div class="stamps" id="stamps"></div>
+    <div class="bookDetail" id="bookDetail"></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <section class="sheet" role="dialog" aria-modal="true" aria-label="おとなメニュー">
+    <div class="sh-head">
+      <div class="tabs" role="tablist">
+        <button class="tab" id="tabAdd" type="button" role="tab" aria-selected="true">きろくする</button>
+        <button class="tab" id="tabLog" type="button" role="tab" aria-selected="false">これまで</button>
+        <button class="tab" id="tabSet" type="button" role="tab" aria-selected="false">せってい</button>
+      </div>
+      <button class="x" id="closeBtn" type="button" aria-label="とじる">×</button>
+    </div>
+
+    <div class="panel" id="panelAdd">
+      <p class="warn" id="addWarn" hidden></p>
+      <div>
+        <p class="lab">写真</p>
+        <label class="drop" for="photoInput" id="drop">
+          <input class="sr" id="photoInput" type="file" accept="image/*">
+          <span id="dropText">タップして写真をえらぶ・とる</span>
+        </label>
+      </div>
+      <div>
+        <p class="lab">できたこと（いくつでも）</p>
+        <div class="chips" id="chipBox"></div>
+      </div>
+      <div>
+        <p class="lab">みつけた のりもの（いくつでも）</p>
+        <div class="chips" id="vehBox"></div>
+      </div>
+      <div>
+        <p class="lab">ひとこと</p>
+        <textarea id="noteIn" maxlength="300" placeholder="例：はじめて「まんま」と言った"></textarea>
+      </div>
+      <div>
+        <p class="lab">あげる人</p>
+        <div class="seg" id="whoBox"></div>
+      </div>
+      <button class="go" id="goBtn" type="button">キャラにあげる</button>
+      <p class="note">写真は1こ +2、できたことは +2、ひとことだけでも +1。たまってくると、キャラが大きくなります。</p>
+    </div>
+
+    <div class="panel" id="panelLog" hidden>
+      <div id="logList"></div>
+    </div>
+
+    <div class="panel" id="panelSet" hidden>
+      <div>
+        <p class="lab">キャラの名前</p>
+        <input type="text" id="nameIn" maxlength="12" placeholder="ぶーぶー">
+      </div>
+      <div>
+        <p class="lab">お子さんの生年月日（記録に月齢が出ます）</p>
+        <input type="date" id="bdayIn">
+      </div>
+      <div>
+        <p class="lab">お子さんを ドライバーにする</p>
+        <label class="wide pickbtn" for="lookInput" id="lookReadLabel">
+          <input class="sr" id="lookInput" type="file" accept="image/*">
+          <span id="lookReadText">写真をえらんで、特徴を読み取る</span>
+        </label>
+        <p class="note" id="lookNote">髪型・髪の色・服の色は、下で手で えらべます。</p>
+      </div>
+      <div>
+        <p class="lab">髪型</p>
+        <div class="chips" id="hairChips"></div>
+      </div>
+      <div class="two">
+        <div><p class="lab">髪の色</p><input class="color" type="color" id="hairColorIn" value="#4a3426"></div>
+        <div><p class="lab">のりものの色</p><input class="color" type="color" id="bibColorIn" value="#ef5b4b"></div>
+      </div>
+      <div class="chips">
+        <button class="chip" id="glBtn" type="button" aria-pressed="false">メガネ</button>
+        <button class="chip" id="lookReset" type="button">もとにもどす</button>
+      </div>
+      <button class="go" id="lookSave" type="button">このすがたにする</button>
+      <div>
+        <p class="lab">おと</p>
+        <button class="wide" id="soundBtn" type="button" aria-pressed="true">おと：あり</button>
+        <button class="wide" id="soundTest" type="button" style="margin-top:8px">おとを ならしてみる</button>
+        <p class="note">音が出ないときは、iPhoneの横のスイッチ（マナーモード）をオフにして、もう一度さわってみてください。</p>
+      </div>
+      <div>
+        <p class="lab">すがたのプレビュー（保存されません）</p>
+        <div class="chips" id="prevChips"></div>
+        <p class="note" id="prevNote"></p>
+      </div>
+      <div>
+        <p class="lab">バックアップ</p>
+        <div class="two"><button class="wide" id="bkExport" type="button">書き出す</button><label class="wide pickbtn" for="bkImport">読み込む<input class="sr" id="bkImport" type="file" accept="application/json,.json"></label></div>
+        <p class="note">記録はこの端末の中だけに保存されます。機種変更やアプリの入れ直しの前に、「書き出す」でファイルを残してください。ホーム画面に追加して使うのがおすすめです。</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="viewer" id="viewer" hidden>
+  <img id="vimg" alt="">
+  <p class="vcap" id="vcap"></p>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const THR=[0,3,10,25,50];
+const STAGE=["たまご","ミニカー","でんしゃ","しんかんせん","ひこうき"];
+const STAMPS=[
+  {k:"歩いた",s:"歩"},{k:"走った",s:"走"},{k:"階段",s:"段"},{k:"ボールけり",s:"蹴"},
+  {k:"ことば",s:"言"},{k:"指さし",s:"指"},{k:"まねっこ",s:"似"},{k:"ひとりで食べた",s:"食"},
+  {k:"スプーン",s:"ス"},{k:"ダンス",s:"踊"},{k:"おてつだい",s:"手"},{k:"ぎゅー",s:"抱"},
+  {k:"積み木",s:"積"},{k:"お絵かき",s:"絵"},{k:"ありがとう",s:"礼"},{k:"いやいや",s:"嫌"}
+];
+const CHIPS=STAMPS.map(s=>s.k);
+const WHO=["パパ","ママ","ほか"];
+const SCALE=[523.25,587.33,659.25,783.99,880.0,1046.5];
+
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+};
+const S={
+  records:[], settings:{charName:"ぶーぶー",birthday:""}, previewPts:null,
+  db:null, user:null, canWrite:true, noDb:"", busy:false,
+  who:store.get("who","ママ"), sound:store.get("sound","1")!=="0",
+  file:null, chips:new Set(), veh:new Set(), sheetOpen:false, tab:"add",
+  look:{hair:"fuzz",hairColor:"#4a3426",bibColor:"#ef5b4b",glasses:false},
+  edit:null, dirty:false, sample:null, canImg:false, reading:false
+};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const cname=()=>S.settings.charName||"ぶーぶー";
+
+/* ---------- growth ---------- */
+const totalPts=()=>S.previewPts!==null?S.previewPts:S.records.reduce((a,r)=>a+r.pts,0);
+const stageOf=p=>{let s=0;THR.forEach((t,i)=>{if(p>=t)s=i});return s};
+
+function safeRec(d){
+  return {
+    id:d.id,
+    note:String(d.note||"").slice(0,500),
+    chips:Array.isArray(d.chips)?d.chips.filter(c=>typeof c==="string").slice(0,10).map(c=>c.slice(0,20)):[],
+    who:String(d.who||"").slice(0,6),
+    createdAt:Number(d.createdAt)||0,
+    thumb:(typeof d.thumb==="string"&&d.thumb.indexOf("data:image/")===0)?d.thumb:"",
+    hasPhoto:!!d.hasPhoto,
+    veh:Array.isArray(d.veh)?d.veh.filter(v=>typeof v==="string").slice(0,20).map(v=>v.slice(0,20)):[],
+    pts:Math.min(6,Math.max(1,Number(d.pts)||1))
+  };
+}
+
+/* ---------- formatting ---------- */
+function fmtDate(ts){
+  const t=new Date(ts);
+  return t.toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",weekday:"short"})+" "+t.toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
+}
+function ageAt(ts){
+  const b=S.settings.birthday; if(!b) return "";
+  const p=b.split("-").map(Number); const t=new Date(ts);
+  let m=(t.getFullYear()-p[0])*12+(t.getMonth()+1-p[1]);
+  if(t.getDate()<p[2]) m--;
+  if(m<0) return "";
+  const y=Math.floor(m/12), mm=m%12;
+  return y>0?y+"歳"+mm+"か月":mm+"か月";
+}
+const metaOf=r=>[fmtDate(r.createdAt),ageAt(r.createdAt),r.who].filter(Boolean).join(" ・ ");
+
+/* ---------- sound ---------- */
+let ac=null;
+function audio(){
+  if(!S.sound) return null;
+  try{
+    if(!ac){const C=window.AudioContext||window.webkitAudioContext; if(C) ac=new C();}
+    if(ac&&ac.state==="suspended") ac.resume();
+  }catch(e){}
+  return ac;
+}
+/* iPhone: sound needs an unlock on touchend/click (pointerdown is not enough) and must bypass the silent switch */
+let unlocked=false, silentEl=null;
+function unlockAudio(){
+  try{ if(navigator.audioSession) navigator.audioSession.type="playback"; }catch(e){}
+  try{
+    if(!ac){const C=window.AudioContext||window.webkitAudioContext; if(C) ac=new C();}
+    if(ac){
+      if(ac.state!=="running") ac.resume();
+      const b=ac.createBuffer(1,1,22050), src=ac.createBufferSource(); src.buffer=b; src.connect(ac.destination); src.start(0);
+    }
+  }catch(e){}
+  try{
+    if(!silentEl){
+      const n=2205, buf=new ArrayBuffer(44+n*2), v=new DataView(buf), w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+      w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVEfmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,22050,true);v.setUint32(28,44100,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,n*2,true);
+      silentEl=document.createElement("audio"); silentEl.src=URL.createObjectURL(new Blob([buf],{type:"audio/wav"})); silentEl.loop=true; silentEl.setAttribute("playsinline",""); silentEl.volume=.01;
+    }
+    const pr=silentEl.play(); if(pr&&pr.catch) pr.catch(()=>{});
+  }catch(e){}
+  if(ac&&ac.state==="running") unlocked=true;
+}
+["touchend","pointerup","click","keydown"].forEach(t=>document.addEventListener(t,()=>{if(!unlocked) unlockAudio();},{capture:true,passive:true}));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){unlocked=false;}});
+function tone(freq,t0,dur,type,gain){
+  const a=audio(); if(!a) return;
+  try{
+    const t=a.currentTime+(t0||0), d=dur||.22;
+    const o=a.createOscillator(), g=a.createGain();
+    o.type=type||"sine";
+    o.frequency.setValueAtTime(freq,t);
+    o.frequency.exponentialRampToValueAtTime(freq*1.04,t+d*.6);
+    g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(gain||.18,t+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t+d+.02);
+  }catch(e){}
+}
+function fanfare(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,i*.12,.3,"triangle",.16))}
+
+/* ---------- character ---------- */
+const hero=$("hero");
+const TALK=[null,
+  ["ぶっぶー！","ぷっぷー！","しゅっぱつ！","ドライブ！","ぶろろろ〜"],
+  ["ガタンゴトン","しゅっぱつ しんこう！","でんしゃ だよ","ぽっぽー！","つぎは どこ？"],
+  ["ビューン！","はやい はやい！","ぴかぴか！","しゅっぱつ しんこう！","とまらない！"],
+  ["ゴォー！","とんでけ〜","そらだよ！","ひこうき！","たかい たかい！"]];
+function lines(){
+  const p=totalPts(), st=stageOf(p);
+  if(st===0) return p>0?["ぴしっ…！","なにか でてきそう","こつ、こつ"]:["…すやすや","こつん","まだ ねんね"];
+  return TALK[st].concat([cname()+"だよ"]);
+}
+function say(t){
+  const b=$("bubble"); b.textContent=t;
+  b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
+}
+function anim(cls){
+  hero.classList.remove("a-squish","a-wobble","a-dance","a-vroom");
+  void hero.getBoundingClientRect();
+  hero.classList.add(cls);
+}
+hero.addEventListener("animationend",e=>{
+  if(e.target===hero) hero.classList.remove("a-squish","a-wobble","a-dance","a-vroom");
+});
+let talkT=0;
+function talk(ms){
+  hero.classList.add("talk"); clearTimeout(talkT);
+  talkT=setTimeout(()=>hero.classList.remove("talk"),ms||350);
+}
+function burst(x,y,n,host){
+  const st=host||$("stage"); if(st.querySelectorAll(".star").length>60) return;
+  const r=st.getBoundingClientRect();
+  const cols=["var(--pop)","var(--body)","var(--accent)","var(--cheek)"];
+  for(let i=0;i<n;i++){
+    const s=document.createElement("span"); s.className="star";
+    const a=Math.random()*Math.PI*2, d=50+Math.random()*90;
+    s.style.left=(x-r.left)+"px"; s.style.top=(y-r.top)+"px";
+    s.style.setProperty("--dx",(Math.cos(a)*d)+"px");
+    s.style.setProperty("--dy",(Math.sin(a)*d-30)+"px");
+    s.style.setProperty("--r",(Math.random()*240-120)+"deg");
+    s.style.background=pick(cols);
+    s.addEventListener("animationend",()=>s.remove());
+    st.appendChild(s);
+  }
+}
+function banner(text){
+  const old=$("stage").querySelector(".banner"); if(old) old.remove();
+  const b=document.createElement("div"); b.className="banner"; b.textContent=text;
+  b.addEventListener("animationend",()=>b.remove());
+  $("stage").appendChild(b);
+}
+let taps=0, sndUntil=0;
+const STKEY=["","car","train","shinkansen","plane"];
+const SNDLEN=[0,1.4,2,1.9,2.1];
+function poke(x,y){
+  taps++;
+  const st=stageOf(totalPts());
+  const now=performance.now()/1000;
+  if(st===0){
+    const f=SCALE[Math.floor(Math.random()*5)]*1.3;
+    tone(f,0,.2,"sine",.2); tone(f*2,0,.1,"triangle",.05);
+    anim("a-wobble");
+  }else{
+    if(now>=sndUntil){
+      const fn=VSOUND[STKEY[st]];
+      if(fn){fn(); sndUntil=now+SNDLEN[st];}
+    }else tone(SCALE[Math.floor(Math.random()*5)]*1.3,0,.12,"triangle",.1);
+    anim(taps%4===0?"a-vroom":"a-squish");
+  }
+  talk(); say(pick(lines())); burst(x,y,st===0?3:5);
+  if(taps%4===0&&st>0){
+    say("ビューン！"); talk(900);
+    const r=hero.getBoundingClientRect(); burst(r.left+r.width/2,r.top+r.height*.45,14);
+  }
+}
+const cb=$("charaBtn");
+cb.addEventListener("pointerdown",e=>{poke(e.clientX,e.clientY)});
+cb.addEventListener("keydown",e=>{
+  if(e.key==="Enter"||e.key===" "){
+    e.preventDefault(); const r=hero.getBoundingClientRect();
+    poke(r.left+r.width/2,r.top+r.height/2);
+  }
+});
+
+function feedReaction(rec,up,stamp){
+  say("ぴかぴか！ ありがとう！"); talk(900); anim("a-squish");
+  if(rec.thumb){
+    const im=document.createElement("img"); im.className="fly"; im.alt=""; im.src=rec.thumb;
+    im.addEventListener("animationend",()=>im.remove());
+    $("stage").appendChild(im);
+  }
+  [523.25,659.25,783.99].forEach((f,i)=>tone(f,i*.09,.18,"triangle",.15));
+  const r=hero.getBoundingClientRect();
+  burst(r.left+r.width/2,r.top+r.height*.5,10);
+  setTimeout(()=>{
+    if(up){banner("へんしん！"); fanfare(); burst(r.left+r.width/2,r.top+r.height*.4,18); say("へんしんしたよ！");}
+    else if(stamp){banner("はんこ ゲット！"); fanfare(); say("あたらしい はんこ！");}
+    else say("ぱわーあっぷ！");
+  },1000);
+  if(up&&stamp) setTimeout(()=>{banner("はんこ ゲット！"); tone(784,0,.2,"triangle",.15); tone(1046.5,.12,.3,"triangle",.15); say("あたらしい はんこ！");},3200);
+}
+
+/* ---------- rendering ---------- */
+function renderChara(){
+  const p=totalPts(), st=stageOf(p);
+  $("charaBtn").style.setProperty("--s",(.66+.42*(1-Math.exp(-p/18))).toFixed(3));
+  hero.setAttribute("data-stage",String(st));
+  hero.setAttribute("data-crack",(st===0&&p>0)?"1":"0");
+}
+function renderMeter(){
+  const p=totalPts(), st=stageOf(p), lo=THR[st], hi=THR[st+1];
+  $("stagePill").textContent=cname()+" ・ "+STAGE[st];
+  const frac=hi===undefined?1:Math.min(1,(p-lo)/(hi-lo));
+  $("fill").style.width=Math.round(frac*100)+"%";
+  $("nextLabel").textContent=hi===undefined?"いちばん はやい すがた！":"あと "+(hi-p)+" で へんしん！";
+  $("countLabel").textContent=S.previewPts!==null?"プレビュー中":"きろく "+S.records.length+"こ";
+}
+function renderStrip(){
+  const strip=$("strip"); strip.textContent="";
+  const ph=S.records.filter(r=>r.thumb).slice(0,30);
+  if(!ph.length){
+    for(let i=0;i<3;i++){const g=document.createElement("div"); g.className="ghost"; strip.appendChild(g);}
+    const p=document.createElement("p"); p.className="ghost-note";
+    p.textContent="右上の「ながおし」ボタンから、写真やひとことをあげると、ここに並びます。";
+    strip.appendChild(p);
+    return;
+  }
+  ph.forEach(r=>{
+    const b=document.createElement("button"); b.type="button"; b.className="pb"; b.setAttribute("aria-label","しゃしんを みる");
+    const im=document.createElement("img"); im.alt=""; im.src=r.thumb; b.appendChild(im);
+    b.addEventListener("click",()=>openViewer(r));
+    strip.appendChild(b);
+  });
+}
+function renderLog(){
+  const box=$("logList"); box.textContent="";
+  if(!S.records.length){
+    const p=document.createElement("p"); p.className="note";
+    p.textContent="まだ きろくがありません。「きろくする」から、最初の1こをあげてみてください。";
+    box.appendChild(p); return;
+  }
+  S.records.forEach(r=>{
+    const row=document.createElement("div"); row.className="row";
+    const th=document.createElement(r.thumb?"button":"div"); th.className="th";
+    if(r.thumb){
+      th.type="button"; th.setAttribute("aria-label","しゃしんを みる");
+      const im=document.createElement("img"); im.alt=""; im.src=r.thumb; th.appendChild(im);
+      th.addEventListener("click",()=>openViewer(r));
+    }else th.textContent=r.who?r.who.charAt(0):"・";
+    const mid=document.createElement("div"); mid.style.minWidth="0";
+    const meta=document.createElement("div"); meta.className="meta"; meta.textContent=metaOf(r); mid.appendChild(meta);
+    if(r.note){const t=document.createElement("p"); t.className="txt"; t.textContent=r.note; mid.appendChild(t);}
+    const allTags=r.chips.concat(r.veh.map(vehName));
+    if(allTags.length){
+      const tg=document.createElement("div"); tg.className="tags";
+      allTags.forEach(c=>{const s=document.createElement("span"); s.className="tag"; s.textContent=c; tg.appendChild(s);});
+      mid.appendChild(tg);
+    }
+    const del=document.createElement("button"); del.type="button"; del.className="del"; del.textContent="消す";
+    del.addEventListener("click",()=>{
+      if(!del.dataset.armed){
+        del.dataset.armed="1"; del.textContent="本当に消す？"; del.classList.add("armed");
+        setTimeout(()=>{if(del.isConnected){delete del.dataset.armed; del.textContent="消す"; del.classList.remove("armed");}},3000);
+        return;
+      }
+      delRecord(r);
+    });
+    row.appendChild(th); row.appendChild(mid); row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+function renderAdd(){
+  let msg="";
+  if(S.noDb) msg=S.noDb;
+  else if(!S.canWrite) msg="このアカウントは閲覧のみです。書き込むには、編集できる人として招待してもらってください。";
+  const w=$("addWarn"); w.hidden=!msg; w.textContent=msg;
+  $("goBtn").disabled=!!msg||S.busy;
+}
+function renderPrevNote(){
+  $("prevNote").textContent=S.previewPts!==null?"いまはプレビュー中です。実際の記録には影響しません。":"押すと閉じて、その大きさのキャラを見られます。";
+}
+function renderAll(){
+  renderChara(); renderLook(); renderMeter(); renderStrip(); renderAdd(); renderPrevNote();
+  if(S.sheetOpen&&S.tab==="log") renderLog();
+  if(!$("book").hidden) renderBook();
+}
+
+/* ---------- toast ---------- */
+let toastT=0;
+function toast(t){
+  const el=$("toast"); el.textContent=t; el.hidden=false;
+  clearTimeout(toastT); toastT=setTimeout(()=>{el.hidden=true},2800);
+}
+
+/* ---------- adult sheet ---------- */
+function showTab(name){
+  S.tab=name;
+  [["add","tabAdd","panelAdd"],["log","tabLog","panelLog"],["set","tabSet","panelSet"]].forEach(a=>{
+    $(a[1]).setAttribute("aria-selected",String(a[0]===name));
+    $(a[2]).hidden=a[0]!==name;
+  });
+  if(name==="log") renderLog();
+}
+function openSheet(){
+  S.sheetOpen=true; $("scrim").hidden=false; showTab(S.tab); renderAdd(); $("closeBtn").focus();
+}
+function closeSheet(){S.sheetOpen=false; $("scrim").hidden=true;}
+$("closeBtn").addEventListener("click",closeSheet);
+$("scrim").addEventListener("click",e=>{if(e.target===$("scrim")) closeSheet();});
+$("tabAdd").addEventListener("click",()=>showTab("add"));
+$("tabLog").addEventListener("click",()=>showTab("log"));
+$("tabSet").addEventListener("click",()=>showTab("set"));
+
+const ab=$("adultBtn"); let holdT=0;
+function endHold(){clearTimeout(holdT); holdT=0; ab.classList.remove("holding");}
+ab.addEventListener("pointerdown",()=>{
+  if(holdT) return;
+  ab.classList.add("holding");
+  holdT=setTimeout(()=>{holdT=0; ab.classList.remove("holding"); openSheet();},900);
+});
+["pointerup","pointerleave","pointercancel"].forEach(t=>ab.addEventListener(t,endHold));
+ab.addEventListener("click",e=>{if(e.detail===0) openSheet();});
+ab.addEventListener("contextmenu",e=>e.preventDefault());
+
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  if(!$("viewer").hidden) closeViewer();
+  else if(S.sheetOpen) closeSheet();
+  else if(!$("book").hidden) $("book").hidden=true;
+  else if(!$("play").hidden) $("play").hidden=true;
+});
+
+/* ---------- photo viewer ---------- */
+const fullCache=new Map(); let viewId="";
+function closeViewer(){$("viewer").hidden=true; viewId="";}
+$("viewer").addEventListener("click",closeViewer);
+async function openViewer(r){
+  viewId=r.id;
+  const img=$("vimg"); img.src=r.thumb; img.classList.add("blur");
+  const cap=$("vcap"); cap.textContent="";
+  if(r.note) cap.appendChild(document.createTextNode(r.note));
+  const sm=document.createElement("small"); sm.textContent=metaOf(r)+"　（どこでも さわると とじるよ）"; cap.appendChild(sm);
+  $("viewer").hidden=false;
+  tone(SCALE[3],0,.18,"triangle",.14); say("みせて みせて");
+  let d=fullCache.get(r.id);
+  if(!d&&S.db&&r.hasPhoto){
+    try{
+      const s=await S.db.doc("photos/"+r.id).get();
+      const v=s.exists?s.data().data:"";
+      if(typeof v==="string"&&v.indexOf("data:image/")===0){d=v; fullCache.set(r.id,v);}
+    }catch(e){}
+  }
+  if(d&&viewId===r.id){img.src=d; img.classList.remove("blur");}
+  else if(viewId===r.id&&!d) img.classList.remove("blur");
+}
+
+/* ---------- add form ---------- */
+const chipBox=$("chipBox");
+CHIPS.forEach(c=>{
+  const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=c; b.setAttribute("aria-pressed","false");
+  b.addEventListener("click",()=>{
+    if(S.chips.has(c)) S.chips.delete(c); else S.chips.add(c);
+    b.setAttribute("aria-pressed",String(S.chips.has(c)));
+  });
+  chipBox.appendChild(b);
+});
+const whoBox=$("whoBox");
+function renderWho(){
+  Array.prototype.forEach.call(whoBox.children,b=>b.setAttribute("aria-pressed",String(b.textContent===S.who)));
+}
+WHO.forEach(w=>{
+  const b=document.createElement("button"); b.type="button"; b.textContent=w;
+  b.addEventListener("click",()=>{S.who=w; store.set("who",w); renderWho();});
+  whoBox.appendChild(b);
+});
+renderWho();
+
+let prevUrl="";
+$("photoInput").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0]; S.file=f||null;
+  if(prevUrl){URL.revokeObjectURL(prevUrl); prevUrl="";}
+  const drop=$("drop"); const old=drop.querySelector("img"); if(old) old.remove();
+  if(f){
+    prevUrl=URL.createObjectURL(f);
+    const im=document.createElement("img"); im.alt="えらんだ写真"; im.src=prevUrl; drop.insertBefore(im,$("dropText"));
+    $("dropText").textContent="えらんだ写真："+f.name+"（"+Math.round(f.size/1024)+"KB）　タップで えらびなおす";
+  }else $("dropText").textContent="タップして写真をえらぶ・とる";
+});
+function resetForm(){
+  S.file=null; S.chips.clear(); S.veh.clear(); Array.prototype.forEach.call($("vehBox").children,b=>b.setAttribute("aria-pressed","false")); $("photoInput").value=""; $("noteIn").value="";
+  Array.prototype.forEach.call(chipBox.children,b=>b.setAttribute("aria-pressed","false"));
+  if(prevUrl){URL.revokeObjectURL(prevUrl); prevUrl="";}
+  const old=$("drop").querySelector("img"); if(old) old.remove();
+  $("dropText").textContent="タップして写真をえらぶ・とる";
+}
+function loadImg(file){
+  return new Promise((res,rej)=>{
+    const u=URL.createObjectURL(file), im=new Image();
+    im.onload=()=>{URL.revokeObjectURL(u); res(im);};
+    im.onerror=()=>{URL.revokeObjectURL(u); rej(new Error("img"));};
+    im.src=u;
+  });
+}
+function drawJpeg(im,max,square,q){
+  const sw=im.naturalWidth, sh=im.naturalHeight;
+  let sx=0,sy=0,sW=sw,sH=sh,dw,dh;
+  if(square){const m=Math.min(sw,sh); sx=(sw-m)/2; sy=(sh-m)/2; sW=m; sH=m; dw=max; dh=max;}
+  else{const k=Math.min(1,max/Math.max(sw,sh)); dw=Math.round(sw*k); dh=Math.round(sh*k);}
+  const c=document.createElement("canvas"); c.width=dw; c.height=dh;
+  c.getContext("2d").drawImage(im,sx,sy,sW,sH,0,0,dw,dh);
+  return c.toDataURL("image/jpeg",q);
+}
+async function processPhoto(file){
+  const im=await loadImg(file);
+  let full=drawJpeg(im,640,false,.72);
+  if(full.length>190000) full=drawJpeg(im,480,false,.58);
+  return {full:full,thumb:drawJpeg(im,160,true,.7)};
+}
+function errMsg(e,fallback){
+  const c=e&&e.code;
+  const tail=c?"（"+c+"）":(e&&e.message?"（"+String(e.message).slice(0,60)+"）":"");
+  if(c==="quota_exceeded") return "保存の上限に達しました。古い記録や写真を消してください。"+tail;
+  if(c==="invalid_argument") return "保存できませんでした。編集できる人として招待されているか確認してください。"+tail;
+  return fallback+tail;
+}
+async function submit(){
+  if(!S.db||S.busy) return;
+  const note=$("noteIn").value.trim(), chips=Array.from(S.chips), veh=Array.from(S.veh), file=S.file;
+  if(!file&&!note&&!chips.length&&!veh.length){toast("写真・ひとこと・できたこと のどれかを入れてね"); return;}
+  S.busy=true; renderAdd();
+  let photoRef=null;
+  try{
+    const ref=S.db.collection("records").doc(), id=ref.id;
+    const rec={note:note,chips:chips,veh:veh,who:S.who,createdAt:Date.now(),hasPhoto:false,pts:1+((chips.length||veh.length)?2:0)};
+    if(file){
+      const p=await processPhoto(file);
+      photoRef=S.db.doc("photos/"+id);
+      await photoRef.set({data:p.full});
+      rec.hasPhoto=true; rec.thumb=p.thumb; rec.pts+=1;
+      fullCache.set(id,p.full);
+    }
+    S.previewPts=null;
+    await ref.set(rec);
+    resetForm(); closeSheet(); toast("あげたよ！");
+  }catch(e){
+    if(photoRef){try{await photoRef.delete();}catch(x){}}
+    toast(errMsg(e,"うまく保存できませんでした。少し待ってから、もう一度ためしてください。"));
+  }finally{
+    S.busy=false; renderAdd();
+  }
+}
+$("goBtn").addEventListener("click",submit);
+async function delRecord(r){
+  if(!S.db) return;
+  try{
+    await S.db.doc("records/"+r.id).delete();
+    if(r.hasPhoto){try{await S.db.doc("photos/"+r.id).delete();}catch(x){}}
+    fullCache.delete(r.id);
+    toast("消しました");
+  }catch(e){toast(errMsg(e,"消せませんでした。もう一度ためしてください。"));}
+}
+
+/* ---------- settings ---------- */
+function syncSettings(){
+  if(document.activeElement!==$("nameIn")) $("nameIn").value=S.settings.charName==="ぶーぶー"?"":S.settings.charName;
+  if(document.activeElement!==$("bdayIn")) $("bdayIn").value=S.settings.birthday;
+}
+async function saveSettings(){
+  if(!S.db||!S.canWrite) return;
+  try{await S.db.doc("app/settings").set({charName:S.settings.charName,birthday:S.settings.birthday});}
+  catch(e){toast(errMsg(e,"設定を保存できませんでした。"));}
+}
+$("nameIn").addEventListener("change",()=>{
+  S.settings.charName=$("nameIn").value.trim().slice(0,12)||"ぶーぶー";
+  renderAll(); saveSettings();
+});
+$("bdayIn").addEventListener("change",()=>{
+  const v=$("bdayIn").value;
+  S.settings.birthday=/^\d{4}-\d{2}-\d{2}$/.test(v)?v:"";
+  renderAll(); saveSettings();
+});
+function renderSound(){
+  const b=$("soundBtn"); b.setAttribute("aria-pressed",String(S.sound)); b.textContent=S.sound?"おと：あり":"おと：なし";
+}
+$("soundTest").addEventListener("click",()=>{
+  if(!S.sound){S.sound=true;store.set("sound","1");}
+  unlockAudio(); VSOUND.car(); toast(ac&&ac.state==="running"?"ぶっぶー！ 聞こえますか？":"音を出せませんでした。マナーモードを確認してください");
+  renderSound();
+});
+$("soundBtn").addEventListener("click",()=>{
+  S.sound=!S.sound; store.set("sound",S.sound?"1":"0"); renderSound();
+  if(S.sound) tone(SCALE[2],0,.2,"sine",.18);
+});
+renderSound();
+const prevChips=$("prevChips");
+STAGE.forEach((n,i)=>{
+  const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=n;
+  b.addEventListener("click",()=>{
+    S.previewPts=THR[i]; closeSheet(); renderAll(); anim("a-squish");
+    if(i>0){fanfare(); say("へんしんしたよ！");} else say("…すやすや");
+  });
+  prevChips.appendChild(b);
+});
+const endPrev=document.createElement("button"); endPrev.type="button"; endPrev.className="chip"; endPrev.textContent="プレビューをやめる";
+endPrev.addEventListener("click",()=>{S.previewPts=null; closeSheet(); renderAll(); say(pick(lines()));});
+prevChips.appendChild(endPrev);
+
+/* ---------- animal play ---------- */
+const ANIMALS=[
+  {k:"dog",nm:"いぬ",cry:"わんわん！",tint:"var(--body-shade)"},
+  {k:"cat",nm:"ねこ",cry:"にゃー！",tint:"var(--pop)"},
+  {k:"rabbit",nm:"うさぎ",cry:"ぴょん！",tint:"var(--cheek)"},
+  {k:"chick",nm:"ひよこ",cry:"ぴよぴよ！",tint:"var(--body)"},
+  {k:"pig",nm:"ぶた",cry:"ぶーぶー！",tint:"var(--accent)"},
+  {k:"cow",nm:"うし",cry:"もー！",tint:"var(--leaf)"}
+];
+function animalSvg(k){
+  const head={
+    dog:'<g class="o"><ellipse cx="22" cy="46" rx="10" ry="20" fill="#8A5A2B" transform="rotate(12 22 46)"/><ellipse cx="78" cy="46" rx="10" ry="20" fill="#8A5A2B" transform="rotate(-12 78 46)"/><circle cx="50" cy="54" r="30" fill="#D9A066"/><ellipse cx="50" cy="66" rx="15" ry="11" fill="#F2D3A6"/></g><circle class="ff" cx="39" cy="48" r="3.6"/><circle class="ff" cx="61" cy="48" r="3.6"/><ellipse class="ff" cx="50" cy="60" rx="5.5" ry="4"/><path class="m" d="M50 64v5M44 71q6 5 12 0"/>',
+    cat:'<g class="o"><polygon points="22,38 26,10 46,26" fill="#F2A65A"/><polygon points="78,38 74,10 54,26" fill="#F2A65A"/><circle cx="50" cy="56" r="31" fill="#F2A65A"/></g><circle class="ff" cx="38" cy="52" r="3.6"/><circle class="ff" cx="62" cy="52" r="3.6"/><polygon points="46,60 54,60 50,65" fill="#FF8FA3"/><path class="m" d="M50 66q-5 6 -10 2M50 66q5 6 10 2M20 58h14M20 66l13 -3M80 58H66M80 66l-13 -3"/>',
+    rabbit:'<g class="o"><ellipse cx="38" cy="26" rx="9" ry="23" fill="#fff"/><ellipse cx="62" cy="26" rx="9" ry="23" fill="#fff"/><circle cx="50" cy="64" r="27" fill="#fff"/></g><ellipse cx="38" cy="28" rx="4" ry="15" fill="#FFB3C1"/><ellipse cx="62" cy="28" rx="4" ry="15" fill="#FFB3C1"/><circle class="ff" cx="40" cy="60" r="3.6"/><circle class="ff" cx="60" cy="60" r="3.6"/><ellipse cx="50" cy="69" rx="4.5" ry="3.5" fill="#FF8FA3"/><path class="m" d="M50 72q-5 6 -9 3M50 72q5 6 9 3"/>',
+    chick:'<g class="o"><ellipse cx="20" cy="62" rx="8" ry="13" fill="#FFC21A" transform="rotate(20 20 62)"/><ellipse cx="80" cy="62" rx="8" ry="13" fill="#FFC21A" transform="rotate(-20 80 62)"/><circle cx="50" cy="56" r="32" fill="#FFD84D"/><path d="M44 26q6 -10 12 0" fill="none"/><polygon points="43,60 57,60 50,70" fill="#FF9E3D"/></g><circle class="ff" cx="38" cy="50" r="4"/><circle class="ff" cx="62" cy="50" r="4"/><circle cx="29" cy="60" r="5" fill="#FF8FA3" opacity=".7"/><circle cx="71" cy="60" r="5" fill="#FF8FA3" opacity=".7"/>',
+    pig:'<g class="o"><polygon points="22,40 26,14 46,28" fill="#FFB3C1"/><polygon points="78,40 74,14 54,28" fill="#FFB3C1"/><circle cx="50" cy="56" r="32" fill="#FFB3C1"/><ellipse cx="50" cy="64" rx="15" ry="11" fill="#FF8FA3"/></g><circle class="ff" cx="38" cy="50" r="3.6"/><circle class="ff" cx="62" cy="50" r="3.6"/><ellipse class="ff" cx="45" cy="64" rx="2.4" ry="3.4"/><ellipse class="ff" cx="55" cy="64" rx="2.4" ry="3.4"/>',
+    cow:'<g class="o"><ellipse cx="20" cy="44" rx="13" ry="8" fill="#fff" transform="rotate(-20 20 44)"/><ellipse cx="80" cy="44" rx="13" ry="8" fill="#fff" transform="rotate(20 80 44)"/><path d="M34 28q-4 -12 4 -16M66 28q4 -12 -4 -16" fill="none"/><circle cx="50" cy="54" r="30" fill="#fff"/><ellipse class="ff" cx="33" cy="40" rx="10" ry="8" stroke="none"/><ellipse cx="50" cy="68" rx="17" ry="11" fill="#F3B6B0"/></g><circle class="ff" cx="40" cy="54" r="3.6"/><circle class="ff" cx="60" cy="54" r="3.6"/><ellipse class="ff" cx="44" cy="69" rx="2.4" ry="3"/><ellipse class="ff" cx="56" cy="69" rx="2.4" ry="3"/>'
+  };
+  if(!head[k]&&VSVG[k]){
+    const air=/^(plane|heli|rocket|ship)$/.test(k);
+    const body=VSVG[k].replace(/#BFE3F7|#8EC8F0/g,"url(#glassG)");
+    return '<svg viewBox="0 0 100 100" aria-hidden="true">'+(air?'':'<ellipse cx="50" cy="86" rx="42" ry="3.6" fill="#000" opacity=".13"/>')+'<g filter="url(#glossS)">'+body+'</g></svg>';
+  }
+  return '<svg viewBox="0 0 100 100" aria-hidden="true">'+(head[k]||"")+'</svg>';
+}
+const VEHICLES=[
+  {k:"car",nm:"くるま",cry:"ぷっぷー！",tint:"var(--pop)",g:"ride"},
+  {k:"bus",nm:"バス",cry:"ブッブー！",tint:"var(--body)",g:"ride"},
+  {k:"train",nm:"でんしゃ",cry:"ガタンゴトン！",tint:"var(--body-shade)",g:"ride"},
+  {k:"shinkansen",nm:"しんかんせん",cry:"ビューン！",tint:"var(--accent)",g:"ride"},
+  {k:"plane",nm:"ひこうき",cry:"ゴォー！",tint:"var(--accent)",g:"ride"},
+  {k:"heli",nm:"ヘリコプター",cry:"バラバラ！",tint:"var(--cheek)",g:"ride"},
+  {k:"ship",nm:"ふね",cry:"ボォー！",tint:"var(--accent)",g:"ride"},
+  {k:"rocket",nm:"ロケット",cry:"ドーン！",tint:"var(--pop)",g:"ride"},
+  {k:"police",nm:"パトカー",cry:"ウーウー！",tint:"var(--accent)",g:"work"},
+  {k:"ambulance",nm:"きゅうきゅうしゃ",cry:"ピーポー！",tint:"var(--cheek)",g:"work"},
+  {k:"fire",nm:"しょうぼうしゃ",cry:"ウーカンカン！",tint:"var(--pop)",g:"work"},
+  {k:"digger",nm:"ショベルカー",cry:"ガガガ！",tint:"var(--body)",g:"work"},
+  {k:"dump",nm:"ダンプカー",cry:"ピッピッピッ！",tint:"var(--body-shade)",g:"work"},
+  {k:"mixer",nm:"ミキサーしゃ",cry:"ゴロゴロ！",tint:"var(--leaf)",g:"work"},
+  {k:"crane",nm:"クレーンしゃ",cry:"ウィーン！",tint:"var(--body)",g:"work"},
+  {k:"truck",nm:"トラック",cry:"ブォーン！",tint:"var(--accent)",g:"work"}
+];
+const WHEEL=(x,y,r)=>{let sp="";for(let i=0;i<5;i++){const a=i*Math.PI*2/5-Math.PI/2;sp+="M"+x+" "+y+"L"+(x+Math.cos(a)*r*.58).toFixed(2)+" "+(y+Math.sin(a)*r*.58).toFixed(2)}
+  return '<g class="wh"><circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="#2A2D33"/><circle cx="'+x+'" cy="'+y+'" r="'+(r*.62)+'" fill="#D5DAE0" stroke="none"/><path d="'+sp+'" stroke="#7B8591" stroke-width="1.1" fill="none"/><circle cx="'+x+'" cy="'+y+'" r="'+(r*.2)+'" fill="#7B8591" stroke="none"/></g>'};
+const VSVG={
+  shinkansen:'<g class="o"><path d="M6 66V52C6 46 10 44 16 44H56C76 44 92 58 96 66Z" fill="#fff"/><path d="M6 57H84L91 64H6Z" fill="#2E7BD6"/><rect x="6" y="64" width="90" height="6" rx="3" fill="#6B7A8F"/><path d="M60 49H70L82 57H60Z" fill="#7FB8E8"/>'+[14,25,36,47].map(x=>'<rect x="'+x+'" y="48" width="8" height="6" rx="2" fill="#7FB8E8"/>').join("")+WHEEL(24,71,5)+WHEEL(50,71,5)+WHEEL(76,71,5)+'</g>',
+  train:'<g class="o"><path class="m" d="M38 34L50 22L62 34"/><rect x="8" y="34" width="84" height="34" rx="8" fill="#E8EEF2"/><rect x="8" y="54" width="84" height="6" fill="#FF8A3D" stroke="none"/>'+[14,32,50,68].map(x=>'<rect x="'+x+'" y="40" width="14" height="11" rx="3" fill="#8EC8F0"/>').join("")+'<circle cx="88" cy="62" r="2.5" fill="#FFE27A" stroke="none"/>'+WHEEL(26,72,6)+WHEEL(74,72,6)+'</g>',
+  bus:'<g class="o"><rect x="8" y="30" width="84" height="40" rx="10" fill="#FFC857"/>'+[14,32,50].map(x=>'<rect x="'+x+'" y="36" width="14" height="14" rx="3" fill="#BFE3F7"/>').join("")+'<path d="M68 36H84Q88 36 88 40V50H68Z" fill="#BFE3F7"/><rect x="8" y="56" width="84" height="5" fill="#E8A92E" stroke="none"/><circle cx="89" cy="60" r="2.5" fill="#FFF3B0" stroke="none"/>'+WHEEL(28,72,8)+WHEEL(72,72,8)+'</g>',
+  police:'<g class="o"><path d="M8 66V56C8 51 11 49 15 49H26L36 35H64L76 49H88C92 49 94 52 94 56V66Z" fill="#fff"/><path d="M8 58H94V66H8Z" fill="#2B2A33"/><path d="M38 39H48V49H31ZM52 39H62L72 49H52Z" fill="#BFE3F7"/><rect x="43" y="28" width="7" height="7" rx="2" fill="#E53935"/><rect x="51" y="28" width="7" height="7" rx="2" fill="#2E7BD6"/>'+WHEEL(28,68,8)+WHEEL(72,68,8)+'</g>',
+  ambulance:'<g class="o"><path d="M6 68V38C6 34 9 32 13 32H60L72 46H88C92 46 94 49 94 53V68Z" fill="#fff"/><rect x="6" y="54" width="88" height="6" fill="#E53935" stroke="none"/><path d="M26 36h8v14h-8zM23 40h14v7H23z" fill="#E53935" stroke="none"/><rect x="30" y="25" width="12" height="7" rx="2" fill="#E53935"/><path d="M62 38L70 46H62Z" fill="#BFE3F7"/>'+WHEEL(26,70,8)+WHEEL(74,70,8)+'</g>',
+  fire:'<g class="o"><rect x="6" y="38" width="62" height="30" rx="6" fill="#E53935"/><path d="M68 68V48H84L94 58V68Z" fill="#E53935"/><path d="M72 51H83L90 58H72Z" fill="#BFE3F7"/><path class="m" d="M12 33H62M14 28H60M22 28V33M34 28V33M46 28V33M56 28V33"/><rect x="6" y="56" width="62" height="4" fill="#fff" stroke="none" opacity=".8"/>'+WHEEL(22,70,7)+WHEEL(50,70,7)+WHEEL(80,70,7)+'</g>',
+  digger:'<g class="o"><rect x="10" y="70" width="54" height="14" rx="7" fill="#444"/><circle cx="18" cy="77" r="3" fill="#bbb" stroke="none"/><circle cx="56" cy="77" r="3" fill="#bbb" stroke="none"/><rect x="16" y="54" width="42" height="18" rx="4" fill="#FFC21A"/><path d="M18 54V40H40V54Z" fill="#FFC21A"/><rect x="22" y="43" width="14" height="8" rx="2" fill="#BFE3F7"/><polygon points="38,56 60,22 70,29 50,62" fill="#FFC21A"/><polygon points="60,22 88,40 82,50 56,32" fill="#FFC21A"/><polygon points="88,40 96,50 86,62 76,50" fill="#C99A00"/></g>',
+  plane:'<g class="o"><path d="M48 46L66 22H56L38 46Z" fill="#9CCBF0"/><path d="M14 50L6 28H20L32 48Z" fill="#2E7BD6"/><ellipse cx="50" cy="54" rx="42" ry="12" fill="#fff"/><path d="M44 58L66 84H53L32 60Z" fill="#9CCBF0"/><path d="M78 48Q86 48 90 54H78Z" fill="#7FB8E8"/>'+[26,36,46,56,66].map(x=>'<circle cx="'+x+'" cy="52" r="2.6" fill="#7FB8E8" stroke="none"/>').join("")+'</g>'
+};
+Object.assign(VSVG,{
+  car:'<g class="o"><path d="M8 66V56Q8 50 14 50H24L34 36Q36 32 41 32H62Q66 32 69 36L78 50H88Q94 50 94 56V66Z" fill="#EF5B4B"/><path d="M38 38H50V50H31ZM54 38H62L70 50H54Z" fill="#BFE3F7"/><circle cx="89" cy="57" r="3" fill="#FFE27A" stroke="none"/>'+WHEEL(28,68,8)+WHEEL(72,68,8)+'</g>',
+  truck:'<g class="o"><rect x="6" y="28" width="58" height="40" rx="4" fill="#fff"/><rect x="6" y="56" width="58" height="6" fill="#2E7BD6" stroke="none"/><path d="M66 68V42H82L94 56V68Z" fill="#2E7BD6"/><path d="M70 46H80L88 56H70Z" fill="#BFE3F7"/>'+WHEEL(22,70,8)+WHEEL(46,70,8)+WHEEL(80,70,8)+'</g>',
+  heli:'<g class="o"><path class="m" d="M12 22H88M50 22V30"/><path d="M68 46L94 36V45L70 56Z" fill="#EF5B4B"/><ellipse cx="46" cy="50" rx="28" ry="19" fill="#EF5B4B"/><path d="M26 46Q34 34 50 36V52H24Z" fill="#BFE3F7"/><path class="m" d="M26 76H68M34 70V76M58 70V76"/></g>',
+  ship:'<g class="o"><path d="M6 58H94L84 78H18Z" fill="#E53935"/><rect x="24" y="40" width="46" height="18" rx="3" fill="#fff"/><circle cx="34" cy="49" r="3.5" fill="#BFE3F7"/><circle cx="47" cy="49" r="3.5" fill="#BFE3F7"/><circle cx="60" cy="49" r="3.5" fill="#BFE3F7"/><rect x="40" y="24" width="14" height="16" rx="2" fill="#2E7BD6"/><path class="m" d="M44 18Q48 12 54 16"/><path class="m" style="stroke:#7FB8E8" d="M4 86Q14 80 24 86T44 86T64 86T84 86T98 86"/></g>',
+  rocket:'<g class="o"><path d="M50 6Q72 24 72 56V72H28V56Q28 24 50 6Z" fill="#fff"/><path d="M50 6Q60 14 65 26H35Q40 14 50 6Z" fill="#E53935"/><circle cx="50" cy="42" r="9" fill="#BFE3F7"/><path d="M28 58L14 76V84L28 76Z" fill="#E53935"/><path d="M72 58L86 76V84L72 76Z" fill="#E53935"/><path d="M38 72H62L56 96L50 86L44 96Z" fill="#FFB020"/></g>',
+  dump:'<g class="o"><polygon points="8,58 64,58 60,30 8,38" fill="#FFC21A"/><path d="M66 70V44H82L94 56V70Z" fill="#E57C1F"/><path d="M70 48H80L87 56H70Z" fill="#BFE3F7"/><rect x="6" y="58" width="60" height="8" rx="2" fill="#6B7A8F"/>'+WHEEL(22,72,8)+WHEEL(50,72,8)+WHEEL(80,72,8)+'</g>',
+  mixer:'<g class="o"><ellipse cx="36" cy="42" rx="31" ry="20" fill="#FF8A3D" transform="rotate(-14 36 42)"/><path class="m" style="stroke-opacity:.5" d="M16 44Q34 30 56 44M14 52Q34 38 58 52"/><path d="M66 70V44H82L94 56V70Z" fill="#2E7BD6"/><path d="M70 48H80L87 56H70Z" fill="#BFE3F7"/><rect x="6" y="62" width="60" height="8" rx="2" fill="#6B7A8F"/>'+WHEEL(22,74,8)+WHEEL(50,74,8)+WHEEL(80,74,8)+'</g>',
+  crane:'<g class="o"><polygon points="24,52 28,46 72,8 78,14 34,52" fill="#E8A92E"/><path class="m" d="M75 12V40M70 40H80"/><rect x="6" y="52" width="72" height="14" rx="3" fill="#FFC21A"/><rect x="62" y="40" width="30" height="26" rx="4" fill="#FFC21A"/><path d="M66 44H78L86 52H66Z" fill="#BFE3F7"/>'+WHEEL(22,70,8)+WHEEL(46,70,8)+WHEEL(80,70,8)+'</g>'
+});
+function noise(t0,dur,f0,f1,gain){
+  const a=audio(); if(!a) return;
+  try{
+    const n=Math.floor(a.sampleRate*dur), buf=a.createBuffer(1,n,a.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    const s=a.createBufferSource(); s.buffer=buf;
+    const f=a.createBiquadFilter(); f.type="bandpass"; f.Q.value=1.2;
+    const t=a.currentTime+t0;
+    f.frequency.setValueAtTime(f0,t); f.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    const g=a.createGain();
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(gain,t+dur*.4); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    s.connect(f); f.connect(g); g.connect(a.destination); s.start(t); s.stop(t+dur+.02);
+  }catch(e){}
+}
+const VSOUND={
+  shinkansen:()=>{noise(0,.9,300,1900,.55); sweep(880,880,.05,.12,"square",.06,1200);},
+  train:()=>{[0,.16,.5,.66].forEach(t=>sweep(110,70,t,.09,"square",.22,320)); sweep(420,420,.9,.35,"triangle",.14);},
+  bus:()=>{sweep(330,330,0,.16,"square",.14,900); sweep(330,330,.24,.16,"square",.14,900);},
+  police:()=>{sweep(600,900,0,.45,"triangle",.22); sweep(900,600,.45,.45,"triangle",.22);},
+  ambulance:()=>{sweep(960,960,0,.4,"square",.1,1800); sweep(770,770,.42,.4,"square",.1,1800);},
+  fire:()=>{sweep(500,800,0,.5,"triangle",.2); sweep(800,500,.5,.5,"triangle",.2); [.15,.4,.65,.9].forEach(t=>sweep(1500,1450,t,.1,"sine",.12));},
+  digger:()=>{[0,.2,.4].forEach(t=>sweep(90,60,t,.16,"sawtooth",.24,300)); sweep(300,520,.62,.35,"sawtooth",.1,900);},
+  plane:()=>{noise(0,1.1,200,800,.5); sweep(140,200,0,1,"sawtooth",.06,300);}
+};
+function sweep(f0,f1,t0,dur,type,gain,lp){
+  const a=audio(); if(!a) return;
+  try{
+    const t=a.currentTime+t0, o=a.createOscillator(), g=a.createGain();
+    o.type=type;
+    o.frequency.setValueAtTime(f0,t);
+    o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(gain,t+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    if(lp){const f=a.createBiquadFilter(); f.type="lowpass"; f.frequency.value=lp; o.connect(f); f.connect(g);}
+    else o.connect(g);
+    g.connect(a.destination); o.start(t); o.stop(t+dur+.02);
+  }catch(e){}
+}
+Object.assign(VSOUND,{
+  car:()=>{sweep(520,520,0,.14,"square",.13,1100); sweep(520,520,.22,.14,"square",.13,1100);},
+  truck:()=>{sweep(210,210,0,.5,"square",.14,700); sweep(160,160,.05,.5,"sawtooth",.1,500);},
+  heli:()=>{for(let i=0;i<14;i++) noise(i*.09,.06,180,260,.5); sweep(110,110,0,1.3,"sawtooth",.05,250);},
+  ship:()=>{sweep(196,185,0,1.2,"sawtooth",.2,420); sweep(98,92,0,1.2,"sine",.2);},
+  rocket:()=>{[0,.3,.6].forEach(t=>sweep(880,880,t,.12,"sine",.14)); noise(.95,1.4,200,1600,.6); sweep(90,420,.95,1.4,"sawtooth",.08,500);},
+  dump:()=>{[0,.32,.64,.96].forEach(t=>sweep(1000,1000,t,.14,"square",.1,1600)); sweep(85,70,0,1.1,"sawtooth",.22,260);},
+  mixer:()=>{sweep(70,110,0,.5,"sawtooth",.2,240); sweep(110,70,.5,.5,"sawtooth",.2,240); noise(0,1,150,300,.3);},
+  crane:()=>{[0,.3,.6].forEach(t=>sweep(1400,1400,t,.18,"sine",.12)); sweep(100,100,0,1,"sawtooth",.12,260);}
+});
+/* ---------- realistic vehicle sound engine ---------- */
+let _bus=null,_nb=null;
+function bus(a){if(!_bus){const c=a.createDynamicsCompressor();c.threshold.value=-20;c.ratio.value=6;const m=a.createGain();m.gain.value=.95;c.connect(m);m.connect(a.destination);_bus=c;}return _bus}
+function nbuf(a){if(!_nb){const n=a.sampleRate*2;_nb=a.createBuffer(1,n,a.sampleRate);const d=_nb.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;}return _nb}
+function fpath(p,fp,t,d,mul){p.setValueAtTime(fp[0][1]*mul,t+fp[0][0]*d);for(let i=1;i<fp.length;i++)p.exponentialRampToValueAtTime(fp[i][1]*mul,t+fp[i][0]*d)}
+function genv(g,t,a,pk,d,r){g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(pk,t+a);const h=Math.max(a,d-r);g.gain.setValueAtTime(pk,t+h);g.gain.exponentialRampToValueAtTime(.0001,t+h+r)}
+function lfoAM(a,t,d,node,rate,depth){const l=a.createOscillator(),lg=a.createGain();l.frequency.value=rate;lg.gain.value=depth;node.gain.value=1-depth;l.connect(lg);lg.connect(node.gain);l.start(t);l.stop(t+d+.1)}
+/* tonal voice: o={t,d,f,f2,fp,h:[[ratio,type,gain]],g,a,r,lp,lp2,am:[rate,depth],vib:[rate,hz]} */
+function V(o){const a=audio();if(!a)return;try{
+  const t=a.currentTime+(o.t||0),d=o.d,at=o.a==null?.03:o.a,r=o.r==null?.08:o.r;
+  const g=a.createGain();genv(g,t,at,o.g||.15,d,r);g.connect(bus(a));
+  let head=g;
+  if(o.am){const n=a.createGain();lfoAM(a,t,d,n,o.am[0],o.am[1]);n.connect(g);head=n}
+  if(o.lp){const f=a.createBiquadFilter();f.type="lowpass";f.Q.value=o.q||.7;f.frequency.setValueAtTime(o.lp,t);if(o.lp2)f.frequency.exponentialRampToValueAtTime(o.lp2,t+d);f.connect(head);head=f}
+  const fp=o.fp||[[0,o.f],[1,o.f2||o.f]];
+  (o.h||[[1,"sawtooth",1]]).forEach(([m,ty,pg])=>{
+    const os=a.createOscillator(),gg=a.createGain();os.type=ty;gg.gain.value=pg;
+    fpath(os.frequency,fp,t,d,m);
+    if(o.vib){const l=a.createOscillator(),lg=a.createGain();l.frequency.value=o.vib[0];lg.gain.value=o.vib[1]*m;l.connect(lg);lg.connect(os.frequency);l.start(t);l.stop(t+d+.1)}
+    os.connect(gg);gg.connect(head);os.start(t);os.stop(t+d+.1)});
+}catch(e){}}
+/* noise voice: o={t,d,fp,type,q,g,a,r,am} */
+function N(o){const a=audio();if(!a)return;try{
+  const t=a.currentTime+(o.t||0),d=o.d,r=o.r==null?.1:o.r;
+  const s=a.createBufferSource();s.buffer=nbuf(a);s.loop=true;
+  const f=a.createBiquadFilter();f.type=o.type||"bandpass";f.Q.value=o.q||.9;fpath(f.frequency,o.fp,t,d,1);
+  const g=a.createGain();genv(g,t,o.a==null?.02:o.a,o.g||.2,d,r);
+  s.connect(f);let head=f;
+  if(o.am){const n=a.createGain();lfoAM(a,t,d,n,o.am[0],o.am[1]);f.connect(n);head=n}
+  head.connect(g);g.connect(bus(a));s.start(t,Math.random()*1.5);s.stop(t+d+.05);
+}catch(e){}}
+const eng=(t,d,f0,f1,g,lp)=>{V({t,d,f:f0,f2:f1,g:g||.28,a:.05,r:.15,lp:lp||420,lp2:(lp||420)*1.7,q:1.5,am:[f0*.45,.45],h:[[1,"sawtooth",1],[.5,"square",.8],[2,"sawtooth",.3]]});N({t,d,fp:[[0,180],[1,260]],type:"lowpass",g:(g||.28)*.35,a:.05,r:.15})};
+const horn=(t,d,fs,g)=>fs.forEach(f=>V({t,d,f,g:(g||.11),a:.025,r:.07,lp:2400,h:[[1,"sawtooth",1],[2,"square",.18]]}));
+const bell=(t,f,g,d)=>[[1,1],[2.76,.5],[5.4,.22]].forEach(([m,a2])=>V({t,d:d||.7,f:f*m,g:(g||.12)*a2,a:.003,r:(d||.7)*.95,h:[[1,"sine",1]]}));
+const clack=(t,g)=>{N({t,d:.07,fp:[[0,350],[1,200]],type:"lowpass",g:g||.5,a:.003,r:.06});N({t,d:.03,fp:[[0,3200],[1,2500]],g:(g||.5)*.35,a:.002,r:.025,q:2})};
+const SOUND_LEN={car:1.4,bus:1.5,train:2,shinkansen:1.9,plane:2.1,heli:1.7,ship:2.4,rocket:2.5,police:2,ambulance:1.4,fire:2.1,digger:1.9,dump:1.9,mixer:1.9,crane:1.9,truck:1.5};
+Object.assign(VSOUND,{
+  car:()=>{eng(0,.6,75,170,.3,380);horn(.5,.12,[420,520]);horn(.72,.34,[420,520])},
+  bus:()=>{N({t:0,d:.55,fp:[[0,3500],[1,2500]],type:"highpass",g:.2,a:.01,r:.5});eng(.3,1.1,48,62,.3,360);horn(.7,.4,[330,392],.1)},
+  train:()=>{horn(0,.8,[392,494],.1);[.85,1.0,1.25,1.4,1.65,1.8].forEach(t=>clack(t,.55));N({t:.8,d:1.1,fp:[[0,500],[1,500]],type:"lowpass",g:.08,a:.2,r:.4})},
+  shinkansen:()=>{[659,523,784].forEach((f,i)=>bell(i*.13,f,.12,.45));N({t:.35,d:1.5,fp:[[0,300],[.45,2200],[1,350]],q:.7,g:.5,a:.65,r:.7});V({t:.35,d:1.4,fp:[[0,1300],[.5,1100],[1,780]],g:.035,a:.4,r:.5,h:[[1,"sine",1],[2,"triangle",.3]]});V({t:.3,d:1.5,f:85,g:.22,a:.6,r:.6,lp:260,h:[[1,"sawtooth",1]]})},
+  plane:()=>{N({t:0,d:2,fp:[[0,350],[.6,1800],[1,2600]],q:.6,g:.45,a:1,r:.9});V({t:0,d:2,fp:[[0,320],[1,1700]],g:.05,a:.9,r:.8,lp:3200,h:[[1,"sawtooth",1],[1.5,"triangle",.4]]});V({t:0,d:2,f:70,f2:95,g:.2,a:.7,r:.8,lp:220,h:[[1,"sawtooth",1]]})},
+  heli:()=>{let t=0,i=0;while(t<1.5){N({t,d:.09,fp:[[0,260],[1,140]],type:"lowpass",g:.5,a:.005,r:.08});N({t,d:.05,fp:[[0,1100],[1,700]],g:.14,a:.004,r:.045,q:1.5});t+=.12-Math.min(.03,i*.0025);i++}V({t:0,d:1.7,fp:[[0,600],[1,780]],g:.035,a:.5,r:.5,h:[[1,"sine",1],[2,"sine",.4]]})},
+  ship:()=>{V({t:0,d:1.5,f:98,f2:96,g:.2,a:.15,r:.6,lp:520,vib:[5,1],h:[[1,"sawtooth",1],[2,"square",.35],[.5,"sine",.8]]});V({t:0,d:1.5,f:123,f2:121,g:.13,a:.15,r:.6,lp:600,h:[[1,"sawtooth",1],[2,"square",.2]]});N({t:.2,d:2,fp:[[0,500],[1,350]],type:"lowpass",g:.2,a:.6,r:.8,am:[.9,.5]})},
+  rocket:()=>{[0,.35,.7].forEach(t=>V({t,d:.13,f:880,g:.1,a:.005,r:.1,h:[[1,"sine",1]]}));N({t:1.05,d:1.45,fp:[[0,250],[.5,1500],[1,900]],type:"lowpass",q:.5,g:.65,a:.35,r:.6});V({t:1.05,d:1.45,f:55,f2:85,g:.3,a:.3,r:.6,lp:200,h:[[1,"sawtooth",1],[2,"square",.4]]});for(let i=0;i<14;i++)N({t:1.2+Math.random()*1.1,d:.04,fp:[[0,3000],[1,5000]],g:.12,a:.003,r:.03})},
+  police:()=>{[0,1].forEach(k=>V({t:k*.95,d:.95,fp:[[0,650],[.5,1050],[1,650]],g:.15,a:.04,r:.05,lp:3000,h:[[1,"sawtooth",1],[2,"square",.25]]}))},
+  ambulance:()=>{[0,.46,.92].forEach((t,i)=>V({t,d:.46,f:i%2?770:960,g:.11,a:.01,r:.04,lp:2600,h:[[1,"square",1],[2,"sine",.25]]}));V({t:0,d:1.38,f:80,g:.07,a:.1,r:.2,lp:240})},
+  fire:()=>{V({t:0,d:2.1,fp:[[0,480],[.28,850],[.52,480],[.78,850],[1,480]],g:.14,a:.05,r:.1,lp:2800,h:[[1,"sawtooth",1],[2,"square",.2]]});for(let i=0;i<8;i++)bell(.15+i*.24,1250,.09,.35);eng(0,2,50,55,.14,320)},
+  digger:()=>{eng(0,1.9,48,58,.26,340);V({t:.4,d:.9,fp:[[0,350],[.5,900],[1,500]],g:.035,a:.25,r:.3,lp:1600,h:[[1,"sawtooth",1]]});N({t:1.3,d:.22,fp:[[0,180],[1,90]],type:"lowpass",g:.7,a:.004,r:.2});bell(1.3,330,.07,.5);N({t:1.45,d:.4,fp:[[0,2000],[1,900]],g:.1,a:.01,r:.3})},
+  dump:()=>{[0,.5,1].forEach(t=>V({t,d:.2,f:1000,g:.06,a:.005,r:.03,lp:1800,h:[[1,"square",1]]}));eng(0,1.7,50,60,.24,340);N({t:1.2,d:.6,fp:[[0,1800],[1,600]],g:.28,a:.05,r:.45,q:.6});bell(1.2,200,.15,.4)},
+  mixer:()=>{N({t:0,d:1.9,fp:[[0,420],[1,520]],type:"lowpass",q:.8,g:.55,a:.2,r:.4,am:[4.5,.55]});eng(0,1.9,52,70,.24,340);N({t:.2,d:1.6,fp:[[0,1500],[1,900]],g:.05,a:.3,r:.4,am:[4.5,.6]})},
+  crane:()=>{eng(0,1.9,48,65,.24,340);for(let i=0;i<8;i++)clack(.5+i*.07,.2);V({t:.6,d:.7,fp:[[0,500],[1,900]],g:.03,a:.2,r:.3,lp:1500});bell(1.35,520,.14,.8);clack(1.35,.4)},
+  truck:()=>{eng(0,.7,55,125,.3,380);V({t:.5,d:.75,f:165,g:.13,a:.03,r:.15,lp:1500,h:[[1,"sawtooth",1],[2,"square",.3]]});V({t:.5,d:.75,f:208,g:.1,a:.03,r:.15,lp:1500,h:[[1,"sawtooth",1],[2,"square",.3]]})}
+});
+/* ---------- more vehicles ---------- */
+VEHICLES.push(
+  {k:"bicycle",nm:"じてんしゃ",cry:"チリンチリン！",tint:"var(--leaf)",g:"ride"},
+  {k:"bike",nm:"バイク",cry:"ブォンブォン！",tint:"var(--pop)",g:"ride"},
+  {k:"taxi",nm:"タクシー",cry:"ぷっぷっ！",tint:"var(--body)",g:"ride"},
+  {k:"sl",nm:"SL",cry:"ポーッ！",tint:"var(--body-shade)",g:"ride"},
+  {k:"tram",nm:"ろめんでんしゃ",cry:"チンチン！",tint:"var(--accent)",g:"ride"},
+  {k:"yacht",nm:"ヨット",cry:"ザザーン！",tint:"var(--accent)",g:"ride"},
+  {k:"garbage",nm:"ごみのくるま",cry:"ピーピー！",tint:"var(--leaf)",g:"work"},
+  {k:"bulldozer",nm:"ブルドーザー",cry:"ガガガ！",tint:"var(--body)",g:"work"},
+  {k:"roller",nm:"ロードローラー",cry:"ゴゴゴ！",tint:"var(--body-shade)",g:"work"},
+  {k:"forklift",nm:"フォークリフト",cry:"ピッピッ！",tint:"var(--pop)",g:"work"}
+);
+Object.assign(VSVG,{
+  bicycle:'<g class="o"><circle cx="24" cy="64" r="15" fill="none" stroke-width="4"/><circle cx="76" cy="64" r="15" fill="none" stroke-width="4"/><circle cx="24" cy="64" r="2.5" fill="#7B8591" stroke="none"/><circle cx="76" cy="64" r="2.5" fill="#7B8591" stroke="none"/><path class="m" style="stroke:#E53935;stroke-width:4" d="M50 64L38 38H62L50 64M24 64L38 38M62 38L76 64"/><path class="m" style="stroke-width:4" d="M62 38L58 28H68M34 33H44"/><rect x="28" y="40" width="0" height="0" fill="none" stroke="none"/></g>',
+  bike:'<g class="o"><path class="m" style="stroke-width:4" d="M24 66L40 50H56L68 42H72L76 66"/><path d="M40 52Q44 38 60 40L64 50Z" fill="#E53935"/><rect x="26" y="46" width="16" height="6" rx="3" fill="#333"/><rect x="42" y="54" width="20" height="12" rx="3" fill="#6B7A8F"/><path class="m" style="stroke-width:4" d="M70 42L66 34H76"/><circle cx="76" cy="46" r="4" fill="#FFE27A"/>'+WHEEL(24,68,11)+WHEEL(76,68,11)+'</g>',
+  taxi:'<g class="o"><path d="M8 66V56C8 51 11 49 15 49H26L36 35H64L76 49H88C92 49 94 52 94 56V66Z" fill="#FFC21A"/><rect x="8" y="57" width="86" height="4" fill="#2B2A33" stroke="none"/><path d="M38 39H48V49H31ZM52 39H62L72 49H52Z" fill="#BFE3F7"/><rect x="42" y="27" width="16" height="8" rx="2" fill="#fff"/>'+WHEEL(28,68,8)+WHEEL(72,68,8)+'</g>',
+  sl:'<g class="o"><rect x="32" y="36" width="58" height="24" rx="12" fill="#2B2A33"/><path d="M72 38L70 22H84L82 38Z" fill="#2B2A33"/><circle cx="78" cy="15" r="6" fill="#fff" opacity=".85" stroke="none"/><circle cx="88" cy="8" r="4" fill="#fff" opacity=".7" stroke="none"/><rect x="8" y="26" width="28" height="38" rx="3" fill="#C93C3C"/><rect x="14" y="33" width="14" height="11" rx="2" fill="#BFE3F7"/><rect x="6" y="22" width="32" height="6" rx="2" fill="#2B2A33"/><rect x="8" y="60" width="86" height="8" rx="2" fill="#555"/><path d="M92 60L98 68H90Z" fill="#888"/><circle cx="62" cy="48" r="3" fill="#E8A92E" stroke="none"/>'+WHEEL(22,71,10)+WHEEL(50,73,8)+WHEEL(68,73,8)+WHEEL(86,73,8)+'</g>',
+  tram:'<g class="o"><path class="m" d="M38 30L48 16L62 30M42 16H56"/><rect x="6" y="30" width="88" height="38" rx="8" fill="#FFF4D6"/><rect x="6" y="52" width="88" height="8" fill="#43A047" stroke="none"/>'+[12,32,52,72].map(x=>'<rect x="'+x+'" y="36" width="14" height="12" rx="3" fill="#BFE3F7"/>').join("")+'<circle cx="90" cy="58" r="2.5" fill="#FFE27A" stroke="none"/>'+WHEEL(26,72,6)+WHEEL(74,72,6)+'</g>',
+  yacht:'<g class="o"><path d="M10 64H90L78 78H22Z" fill="#fff"/><path d="M12 68H88L84 72H16Z" fill="#E53935" stroke="none"/><path class="m" d="M50 62V10"/><path d="M48 14V58H22Z" fill="#fff"/><path d="M54 24V58H80Z" fill="#FF8A3D"/><path class="m" style="stroke:#7FB8E8" d="M4 88Q14 82 24 88T44 88T64 88T84 88T98 88"/></g>',
+  garbage:'<g class="o"><rect x="6" y="34" width="62" height="32" rx="7" fill="#43A047"/><path class="m" style="stroke-opacity:.4" d="M18 40V60M30 40V60M42 40V60"/><circle cx="52" cy="50" r="7" fill="#fff" stroke="none"/><path d="M68 70V44H82L94 56V70Z" fill="#FFF"/><path d="M72 48H81L88 56H72Z" fill="#BFE3F7"/><rect x="2" y="60" width="10" height="8" rx="2" fill="#6B7A8F"/>'+WHEEL(22,72,8)+WHEEL(80,72,8)+'</g>',
+  bulldozer:'<g class="o"><rect x="8" y="64" width="64" height="18" rx="9" fill="#444"/><circle cx="18" cy="73" r="3" fill="#bbb" stroke="none"/><circle cx="62" cy="73" r="3" fill="#bbb" stroke="none"/><rect x="18" y="44" width="46" height="22" rx="4" fill="#FFC21A"/><rect x="22" y="28" width="26" height="18" rx="3" fill="#FFC21A"/><rect x="26" y="32" width="14" height="10" rx="2" fill="#BFE3F7"/><rect x="20" y="24" width="32" height="5" rx="2" fill="#E8A92E"/><path class="m" style="stroke-width:5" d="M62 62L76 60"/><polygon points="74,40 90,38 94,76 78,80" fill="#6B7A8F"/></g>',
+  roller:'<g class="o"><rect x="40" y="46" width="52" height="20" rx="5" fill="#FFC21A"/><rect x="46" y="24" width="38" height="5" rx="2" fill="#E8A92E"/><path class="m" d="M50 28V46M80 28V46"/><rect x="54" y="32" width="22" height="14" rx="2" fill="#BFE3F7" opacity=".9"/><path class="m" style="stroke-width:5" d="M28 64L44 58"/><circle cx="26" cy="64" r="17" fill="#9AA5B1"/><circle cx="26" cy="64" r="5" fill="#6B7A8F"/>'+WHEEL(76,69,13)+'</g>',
+  forklift:'<g class="o"><rect x="14" y="14" width="6" height="60" fill="#6B7A8F"/><rect x="34" y="46" width="48" height="20" rx="5" fill="#F2A23A"/><path class="m" d="M40 46V26H68V46"/><rect x="46" y="38" width="14" height="8" rx="2" fill="#333"/><rect x="72" y="40" width="14" height="26" rx="4" fill="#E57C1F"/><rect x="6" y="68" width="30" height="4" rx="1" fill="#9AA5B1"/><rect x="8" y="48" width="20" height="18" rx="2" fill="#C8A06A"/><path class="m" style="stroke-opacity:.5" d="M8 57H28M18 48V66"/>'+WHEEL(46,74,8)+WHEEL(76,74,6)+'</g>'
+});
+const _chug=(t,n,gap,g)=>{for(let i=0;i<n;i++)N({t:t+i*gap,d:.1,fp:[[0,900],[1,500]],g:g||.35,a:.01,r:.08,q:.7})};
+const _beep=(t,n,f)=>{for(let i=0;i<n;i++)V({t:t+i*.3,d:.16,f:f||1000,g:.08,a:.004,r:.02,lp:2200,h:[[1,"square",1]]})};
+Object.assign(VSOUND,{
+  bicycle:()=>{bell(0,1500,.13,.6);bell(.3,1500,.13,.7);for(let i=0;i<8;i++)clack(.7+i*.09,.07)},
+  bike:()=>{[0,.7].forEach(t=>{V({t,d:.65,fp:[[0,70],[.35,210],[1,95]],g:.24,a:.04,r:.2,lp:800,q:1.2,am:[38,.5],h:[[1,"sawtooth",1],[2,"square",.35]]});N({t,d:.65,fp:[[0,300],[.35,800],[1,350]],type:"lowpass",g:.14,a:.05,r:.2})})},
+  taxi:()=>{horn(0,.14,[600,750]);horn(.24,.14,[600,750]);eng(.5,.9,60,90,.22,360)},
+  sl:()=>{_chug(0,6,.17,.4);V({t:1.1,d:1,fp:[[0,660],[.15,700],[.8,690],[1,640]],g:.14,a:.04,r:.25,lp:2000,vib:[5,3],h:[[1,"sawtooth",1],[1.5,"triangle",.5],[2,"sine",.3]]});V({t:1.1,d:1,fp:[[0,415],[1,405]],g:.1,a:.04,r:.25,lp:1800,h:[[1,"sawtooth",1]]});N({t:1.1,d:.9,fp:[[0,3500],[1,3000]],g:.05,a:.08,r:.3})},
+  tram:()=>{bell(0,880,.14,.55);bell(.34,880,.14,.55);V({t:.6,d:1.2,fp:[[0,130],[1,190]],g:.08,a:.3,r:.4,lp:600,h:[[1,"sawtooth",1],[3,"sine",.4]]});for(let i=0;i<5;i++)clack(.7+i*.22,.35)},
+  yacht:()=>{N({t:0,d:2.3,fp:[[0,350],[.5,950],[1,380]],q:.5,g:.34,a:.7,r:.9,am:[.7,.5]});N({t:.2,d:2,fp:[[0,3000],[1,2200]],type:"highpass",g:.04,a:.7,r:.8,am:[.7,.6]});[1.3,1.65].forEach(t=>V({t,d:.28,fp:[[0,1900],[.4,1450],[1,1750]],g:.05,a:.02,r:.1,vib:[24,70],h:[[1,"sine",1],[2,"sine",.3]]}))},
+  garbage:()=>{const n=[659,622,659,622,659,494,587,523,440];n.forEach((f,i)=>V({t:i*.22,d:.2,f,g:.12,a:.01,r:.07,lp:2400,h:[[1,"triangle",1],[2,"sine",.3]]}));eng(0,2,50,56,.17,320);N({t:1.9,d:.3,fp:[[0,1500],[1,500]],g:.2,a:.02,r:.2})},
+  bulldozer:()=>{eng(0,2,46,60,.3,330);for(let i=0;i<6;i++)clack(.1+i*.31,.28);N({t:1.3,d:.5,fp:[[0,3500],[1,1800]],g:.12,a:.05,r:.3,q:2})},
+  roller:()=>{eng(0,2,40,46,.3,300);N({t:0,d:2,fp:[[0,150],[1,200]],type:"lowpass",g:.3,a:.3,r:.5,am:[5,.6]});bell(1.5,180,.06,.6)},
+  forklift:()=>{_beep(0,3,1000);eng(0,1.8,52,62,.16,320);V({t:.9,d:.9,fp:[[0,300],[1,700]],g:.045,a:.1,r:.2,lp:1800,h:[[1,"sawtooth",1]]});N({t:1.8,d:.15,fp:[[0,200],[1,100]],type:"lowpass",g:.5,a:.003,r:.12})}
+});
+function animalSound(k){
+  if(VSOUND[k]){VSOUND[k](); return;}
+  if(k==="dog"){sweep(520,260,0,.16,"sawtooth",.2,1400); sweep(520,260,.26,.16,"sawtooth",.2,1400);}
+  else if(k==="cat"){sweep(620,900,0,.25,"triangle",.22); sweep(900,560,.25,.4,"triangle",.22);}
+  else if(k==="rabbit"){sweep(260,640,0,.12,"sine",.24); sweep(260,760,.2,.12,"sine",.24);}
+  else if(k==="chick"){[0,.14,.28].forEach(t=>sweep(1900,2500,t,.08,"sine",.14));}
+  else if(k==="pig"){sweep(150,95,0,.35,"sawtooth",.22,500); sweep(150,95,.45,.35,"sawtooth",.22,500);}
+  else if(k==="cow"){sweep(170,125,0,.9,"sawtooth",.22,520);}
+}
+function hitAnimal(a,b,x,y){
+  animalSound(a.k);
+  b.classList.remove("hit"); void b.offsetWidth; b.classList.add("hit");
+  const c=b.querySelector(".cry"); c.textContent=a.cry;
+  c.classList.remove("on"); void c.offsetWidth; c.classList.add("on");
+  burst(x,y,6,$("play"));
+}
+const zoo=$("zoo");
+/* ---------- quiz ---------- */
+let quizT=null, quizLast="", quizOk=0, quizLock=false;
+function shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+/* ---------- drive game: touch and move the vehicle ---------- */
+const G={on:false,k:"car",x:0,y:0,tx:0,ty:0,speed:0,drag:false,off:0,items:[],stars:[],score:0,raf:0,last:0,starT:0,honkAt:0,W:0,H:0,vw:120,eng:null,t:0};
+const FLY={plane:1,heli:1,rocket:1}, SEA={ship:1,yacht:1}, RAIL={train:1,shinkansen:1,sl:1,tram:1};
+const GFLIP={heli:1,forklift:1,roller:1};
+const SCN=[
+  ['<svg viewBox="0 0 40 60"><rect x="17" y="34" width="6" height="24" fill="#8A5A2B"/><circle cx="20" cy="24" r="18" fill="#47B36B"/><circle cx="14" cy="20" r="6" fill="#6BD88C" opacity=".6"/></svg>',44,.95],
+  ['<svg viewBox="0 0 60 50"><rect x="6" y="20" width="48" height="28" fill="#FFE9B8"/><path d="M0 22L30 2L60 22Z" fill="#E8685A"/><rect x="24" y="30" width="12" height="18" fill="#8A5A2B"/><rect x="10" y="26" width="10" height="9" fill="#BFE3F7"/></svg>',64,.95],
+  ['<svg viewBox="0 0 120 60"><path d="M0 60L40 8L62 34L80 18L120 60Z" fill="#8FB3C9"/><path d="M40 8L50 22L40 18L32 22Z" fill="#fff"/></svg>',150,.45],
+  ['<svg viewBox="0 0 70 36"><ellipse cx="35" cy="24" rx="30" ry="11" fill="#fff"/><circle cx="26" cy="16" r="11" fill="#fff"/><circle cx="42" cy="14" r="13" fill="#fff"/></svg>',84,.3]
+];
+function gBand(){
+  const H=G.H, vh=G.vw*.9;
+  if(FLY[G.k]) return [vh/2+40,H-vh/2-8];
+  return [H*.6+vh*.1,H-vh/2-4];
+}
+function gGround(){return RAIL[G.k]?"rail":SEA[G.k]?"sea":"road"}
+function gSpawnItem(it,first){
+  const t=SCN[Math.floor(Math.random()*SCN.length)];
+  it.t=t; it.el.innerHTML=t[0]; it.el.style.width=t[1]+"px";
+  const sky=t[2]===.3;
+  it.f=t[2];
+  it.x=first?Math.random()*G.W:G.W+Math.random()*200;
+  it.y=sky?(10+Math.random()*G.H*.26):0;
+  it.sky=sky;
+  it.el.style.bottom=sky?"auto":(G.H*.4-2)+"px";
+  it.el.style.top=sky?it.y+"px":"auto";
+}
+function gSetVeh(k){
+  G.k=k; const el=$("gveh"); if(!el) return;
+  el.innerHTML=animalSvg(k);
+  const sc=$("gscene"); sc.className="gscene "+gGround();
+  document.querySelectorAll("#gpick button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===k)));
+  gEng(true);
+}
+function gEng(restart){
+  const a=audio(); if(!a) return;
+  try{
+    if(G.eng&&restart){G.eng.stop(); G.eng=null;}
+    if(G.eng) return;
+    const kind=RAIL[G.k]?"rail":SEA[G.k]?"sea":(G.k==="plane"||G.k==="rocket"||G.k==="shinkansen")?"jet":G.k==="heli"?"heli":G.k==="bicycle"?"bike":"eng";
+    const P={eng:[48,90,420,.16,.12],rail:[38,26,260,.1,.2],sea:[70,20,300,.05,.2],jet:[60,90,900,.08,.3],heli:[40,30,300,.1,.15],bike:[300,400,1200,.015,.02]}[kind];
+    const o=a.createOscillator(), og=a.createGain(), f=a.createBiquadFilter(), g=a.createGain();
+    o.type=kind==="bike"?"triangle":"sawtooth"; f.type="lowpass"; f.frequency.value=P[2]; og.gain.value=P[3];
+    const s=a.createBufferSource(); s.buffer=nbuf(a); s.loop=true;
+    const nf=a.createBiquadFilter(); nf.type="bandpass"; nf.frequency.value=600; nf.Q.value=.6; const ng=a.createGain(); ng.gain.value=P[4];
+    g.gain.value=0;
+    o.connect(og); og.connect(f); f.connect(g); s.connect(nf); nf.connect(ng); ng.connect(g); g.connect(bus(a));
+    o.start(); s.start();
+    G.eng={o,f,g,nf,P,stop(){try{g.gain.setTargetAtTime(0,a.currentTime,.05); o.stop(a.currentTime+.3); s.stop(a.currentTime+.3);}catch(e){}}};
+  }catch(e){}
+}
+function gEngUpdate(){
+  const e=G.eng, a=ac; if(!e||!a) return;
+  try{
+    const sp=G.speed, t=a.currentTime;
+    e.o.frequency.setTargetAtTime(e.P[0]+e.P[1]*sp,t,.08);
+    e.nf.frequency.setTargetAtTime(300+1500*sp,t,.1);
+    e.g.gain.setTargetAtTime(sp<.03?0:.5+.5*sp,t,.12);
+  }catch(x){}
+}
+function gHonk(){
+  const now=performance.now(); if(now<G.honkAt) return; G.honkAt=now+1300;
+  const f=VSOUND[G.k]; if(f) f();
+  const el=$("gveh"); el.classList.remove("hop"); void el.offsetWidth; el.classList.add("hop");
+  const c=document.createElement("div"); c.className="gcry"; c.textContent=(VEHICLES.find(v=>v.k===G.k)||{}).cry||"ぷっぷー！";
+  c.style.left=(G.x)+"px"; c.style.top=(G.y-G.vw*.6)+"px"; c.addEventListener("animationend",()=>c.remove()); $("gscene").appendChild(c);
+}
+function gFrame(ts){
+  if(!G.on) return;
+  const dt=Math.min(.05,(ts-(G.last||ts))/1000); G.last=ts; G.t+=dt;
+  const sc=$("gscene"); if(!sc){G.on=false;return;}
+  const r=sc.getBoundingClientRect(); if(r.width&&(Math.abs(r.width-G.W)>2||Math.abs(r.height-G.H)>2)){G.W=r.width;G.H=r.height;G.vw=Math.min(G.W*.36,150);}
+  const [ymin,ymax]=gBand(); const half=G.vw/2;
+  const tx=Math.max(half,Math.min(G.W-half,G.tx)), ty=Math.max(ymin,Math.min(ymax,G.ty));
+  G.x+=(tx-G.x)*Math.min(1,dt*9); G.y+=(ty-G.y)*Math.min(1,dt*9);
+  const want=G.drag?(.45+.55*Math.max(0,Math.min(1,G.x/G.W))):0;
+  G.speed+=(want-G.speed)*Math.min(1,dt*3);
+  const v=G.speed*300+16; G.off+=v*dt;
+  sc.style.setProperty("--off",(-G.off).toFixed(1)+"px");
+  const gr=$("gground"); gr.style.backgroundPositionX=(-G.off).toFixed(1)+"px";
+  G.items.forEach(it=>{
+    it.x-=v*it.f*dt;
+    if(it.x<-170) gSpawnItem(it,false);
+    it.el.style.transform="translateX("+it.x.toFixed(1)+"px)";
+  });
+  G.starT-=dt;
+  if(G.starT<=0&&G.stars.length<5){
+    G.starT=1.1+Math.random()*.7;
+    const el=document.createElement("div"); el.className="gstar";
+    el.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.2L12 17.6 5.6 21.2 7 14l-5.3-5 7.2-.9z" fill="#FFC21A" stroke="#E8A92E" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+    sc.appendChild(el);
+    G.stars.push({el,x:G.W+30,y:ymin+Math.random()*(ymax-ymin)});
+  }
+  for(let i=G.stars.length-1;i>=0;i--){
+    const s=G.stars[i]; s.x-=(v*.9+40)*dt;
+    s.el.style.transform="translate("+(s.x-22).toFixed(1)+"px,"+(s.y-22+Math.sin(G.t*4+i)*4).toFixed(1)+"px)";
+    const dx=s.x-G.x, dy=s.y-G.y;
+    if(Math.abs(dx)<G.vw*.45&&Math.abs(dy)<G.vw*.42){
+      G.score++; s.el.remove(); G.stars.splice(i,1);
+      tone(SCALE[G.score%6]*1.5,0,.18,"triangle",.15); tone(SCALE[G.score%6]*3,0,.1,"sine",.05);
+      $("gscore").textContent="★ "+G.score;
+      burst(r.left+s.x,r.top+s.y,6,sc);
+      if(G.score%10===0){fanfare(); const b=document.createElement("div"); b.className="banner"; b.textContent="すごーい！"; b.addEventListener("animationend",()=>b.remove()); sc.appendChild(b);}
+    }else if(s.x<-40){s.el.remove(); G.stars.splice(i,1);}
+  }
+  const veh=$("gveh");
+  const flip=GFLIP[G.k]?-1:1, rot=G.k==="rocket"?-90:0;
+  const bounce=FLY[G.k]?Math.sin(G.t*3)*4:(G.speed>.05?Math.sin(G.t*22)*1.6*G.speed:0);
+  const tilt=G.drag?Math.max(-8,Math.min(8,(G.ty-G.y)*.12)):0;
+  veh.style.width=G.vw+"px"; veh.style.height=G.vw+"px";
+  veh.style.transform="translate("+(G.x-half).toFixed(1)+"px,"+(G.y-half+bounce).toFixed(1)+"px) rotate("+(rot+tilt*flip)+"deg) scaleX("+flip+")";
+  veh.classList.toggle("moving",G.speed>.08);
+  gEngUpdate();
+  G.raf=requestAnimationFrame(gFrame);
+}
+function renderGame(){
+  zoo.textContent=""; zoo.style.gridTemplateRows="minmax(0,1fr)";
+  const g=document.createElement("div"); g.className="game";
+  g.innerHTML='<div class="gscene road" id="gscene"><div class="gsun"></div><div class="gground" id="gground"></div><div class="gveh" id="gveh"></div><div class="gscore" id="gscore">★ 0</div><p class="ghint" id="ghint">ゆびで うごかそう！</p></div><div class="gpick" id="gpick" role="group" aria-label="のりものを えらぶ"></div>';
+  zoo.appendChild(g);
+  const pk=$("gpick");
+  VEHICLES.forEach(v=>{
+    const b=document.createElement("button"); b.type="button"; b.dataset.k=v.k; b.setAttribute("aria-label",v.nm); b.setAttribute("aria-pressed","false");
+    b.innerHTML=animalSvg(v.k);
+    b.addEventListener("click",()=>{gSetVeh(v.k); tone(SCALE[2],0,.12,"triangle",.12); gSnap();});
+    pk.appendChild(b);
+  });
+  const sc=$("gscene");
+  G.on=true; G.score=0; G.speed=0; G.drag=false; G.stars=[]; G.items=[]; G.starT=1; G.last=0; G.off=0;
+  const r=sc.getBoundingClientRect(); G.W=r.width||360; G.H=r.height||420; G.vw=Math.min(G.W*.36,150);
+  G.x=G.tx=G.W*.3; G.y=G.ty=G.H*.74;
+  for(let i=0;i<9;i++){const el=document.createElement("div"); el.className="gitem"; sc.insertBefore(el,$("gveh")); const it={el}; gSpawnItem(it,true); G.items.push(it);}
+  sc.addEventListener("pointerdown",e=>{
+    unlockAudio(); G.drag=true; gSetT(e); try{sc.setPointerCapture(e.pointerId);}catch(x){}
+    const vr=$("gveh").getBoundingClientRect(); const inside=e.clientX>vr.left&&e.clientX<vr.right&&e.clientY>vr.top+vr.height*.2&&e.clientY<vr.bottom;
+    if(inside) gHonk();
+    $("ghint").hidden=true; gEng(false);
+  });
+  sc.addEventListener("pointermove",e=>{if(G.drag) gSetT(e);});
+  ["pointerup","pointercancel"].forEach(t=>sc.addEventListener(t,()=>{G.drag=false;}));
+  gSetVeh(G.k);
+  cancelAnimationFrame(G.raf); G.raf=requestAnimationFrame(gFrame);
+}
+function gSetT(e){const r=$("gscene").getBoundingClientRect(); G.tx=e.clientX-r.left; G.ty=e.clientY-r.top;}
+function gSnap(){const [a,b]=gBand(); G.ty=Math.max(a,Math.min(b,G.ty)); G.tx=Math.max(G.vw/2,Math.min(G.W-G.vw/2,G.tx));}
+function stopGame(){
+  if(!G.on&&!G.eng) return;
+  G.on=false; cancelAnimationFrame(G.raf);
+  if(G.eng){G.eng.stop(); G.eng=null;}
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden) stopGame();});
+function renderQuiz(){
+  clearTimeout(quizT); quizLock=false;
+  zoo.textContent=""; zoo.style.gridTemplateRows="auto repeat(2,minmax(0,1fr))";
+  const pool=VEHICLES.filter(v=>v.k!==quizLast);
+  const target=pick(pool); quizLast=target.k;
+  const opts=shuf([target].concat(shuf(VEHICLES.filter(v=>v.k!==target.k)).slice(0,3)));
+  const pr=document.createElement("button"); pr.type="button"; pr.className="qprompt";
+  pr.innerHTML='<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path class="ico" d="M4 9.5V14.5H8L13 18.5V5.5L8 9.5ZM16.5 9Q18.5 12 16.5 15M19 6.5Q23 12 19 17.5"/></svg><span>おと、どれかな？</span>';
+  pr.addEventListener("click",()=>{unlockAudio(); VSOUND[target.k]&&VSOUND[target.k]();});
+  zoo.appendChild(pr);
+  opts.forEach(a=>{
+    const b=document.createElement("button"); b.type="button"; b.className="tile ve";
+    b.style.setProperty("--tint",a.tint); b.setAttribute("aria-label",a.nm);
+    b.innerHTML=animalSvg(a.k)+'<span class="nm">'+a.nm+'</span><span class="cry"></span>';
+    b.addEventListener("click",e=>{
+      if(quizLock) return;
+      if(a.k===target.k){
+        quizLock=true; quizOk++;
+        b.classList.add("ok"); b.classList.remove("hit"); void b.offsetWidth; b.classList.add("hit");
+        const c=b.querySelector(".cry"); c.textContent=quizOk%5===0?"すごーい！":"せいかい！"; c.classList.remove("on"); void c.offsetWidth; c.classList.add("on");
+        const r=b.getBoundingClientRect(); burst(r.left+r.width/2,r.top+r.height/2,quizOk%5===0?18:9,zoo.parentNode.parentNode);
+        (quizOk%5===0?fanfare:()=>[523.25,659.25,783.99].forEach((f,i)=>tone(f,i*.09,.18,"triangle",.15)))();
+        quizT=setTimeout(()=>{VSOUND[target.k]&&VSOUND[target.k]();},500);
+        quizT=setTimeout(renderQuiz,2600);
+      }else{
+        b.classList.add("no"); tone(220,0,.18,"sine",.14);
+        const c=b.querySelector(".cry"); c.textContent="もういちど！"; c.classList.remove("on"); void c.offsetWidth; c.classList.add("on");
+        setTimeout(()=>{VSOUND[target.k]&&VSOUND[target.k]();},400);
+      }
+    });
+    zoo.appendChild(b);
+  });
+  setTimeout(()=>{if(!$("play").hidden&&quizLast===target.k) VSOUND[target.k]&&VSOUND[target.k]();},350);
+}
+function renderZoo(cat){
+  clearTimeout(quizT); stopGame();
+  if(cat==="game"){ renderGame(); setTabs(cat); return; }
+  if(cat==="quiz"){ renderQuiz(); setTabs(cat); return; }
+  const list=cat==="work"?VEHICLES.filter(v=>v.g==="work"):cat==="an"?ANIMALS:VEHICLES.filter(v=>v.g==="ride");
+  const ve=cat!=="an";
+  zoo.textContent="";
+  zoo.style.gridTemplateRows=list.length>8?"repeat("+Math.ceil(list.length/2)+",minmax(168px,1fr))":"repeat("+Math.ceil(list.length/2)+",minmax(0,1fr))";
+  list.forEach(a=>{
+    const b=document.createElement("button"); b.type="button"; b.className="tile"+(ve?" ve":"");
+    b.style.setProperty("--tint",a.tint); b.setAttribute("aria-label",a.nm);
+    b.innerHTML=animalSvg(a.k)+'<span class="nm">'+a.nm+'</span><span class="cry"></span>';
+    b.addEventListener("pointerdown",e=>hitAnimal(a,b,e.clientX,e.clientY));
+    b.addEventListener("click",e=>{
+      if(e.detail===0){const r=b.getBoundingClientRect(); hitAnimal(a,b,r.left+r.width/2,r.top+r.height/2);}
+    });
+    zoo.appendChild(b);
+  });
+  setTabs(cat);
+}
+function setTabs(cat){
+  $("tabRide").setAttribute("aria-pressed",String(cat==="ride"));
+  $("tabWork").setAttribute("aria-pressed",String(cat==="work"));
+  $("tabAn").setAttribute("aria-pressed",String(cat==="an"));
+  $("tabQuiz").setAttribute("aria-pressed",String(cat==="quiz"));
+  $("tabGame").setAttribute("aria-pressed",String(cat==="game"));
+}
+$("tabRide").addEventListener("click",()=>{renderZoo("ride"); tone(SCALE[2],0,.12,"triangle",.12);});
+$("tabWork").addEventListener("click",()=>{renderZoo("work"); tone(SCALE[3],0,.12,"triangle",.12);});
+$("tabAn").addEventListener("click",()=>{renderZoo("an"); tone(SCALE[1],0,.12,"triangle",.12);});
+$("tabQuiz").addEventListener("click",()=>{renderZoo("quiz");});
+$("tabGame").addEventListener("click",()=>{unlockAudio(); renderZoo("game");});
+renderZoo("ride");
+
+function vehName(k){const v=VEHICLES.find(x=>x.k===k); return v?v.nm:k;}
+const vehBox=$("vehBox");
+VEHICLES.forEach(v=>{
+  const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=v.nm; b.setAttribute("aria-pressed","false");
+  b.addEventListener("click",()=>{
+    if(S.veh.has(v.k)) S.veh.delete(v.k); else S.veh.add(v.k);
+    b.setAttribute("aria-pressed",String(S.veh.has(v.k)));
+  });
+  vehBox.appendChild(b);
+});
+$("btnPlay").addEventListener("click",()=>{$("play").hidden=false; tone(SCALE[2],0,.15,"triangle",.14);});
+$("playBack").addEventListener("click",()=>{clearTimeout(quizT); stopGame(); $("play").hidden=true;});
+
+/* ---------- stamp book ---------- */
+const SEALCOL=["var(--pop)","var(--accent)","var(--body-shade)","var(--leaf)","var(--cheek)"];
+let bookTab="skill";
+function stampMap(recs){
+  const m={};
+  recs.forEach(r=>{
+    r.chips.forEach(c=>{if(!m[c]||r.createdAt<m[c].createdAt) m[c]=r;});
+    r.veh.forEach(v=>{const key="v:"+v; if(!m[key]||r.createdAt<m[key].createdAt) m[key]=r;});
+  });
+  return m;
+}
+function setDetail(nodes){
+  const d=$("bookDetail"); d.textContent="";
+  nodes.forEach(n=>d.appendChild(n));
+}
+function textNode(main,sub){
+  const p=document.createElement("p"); p.className="dtxt"; p.appendChild(document.createTextNode(main));
+  if(sub){const s=document.createElement("small"); s.textContent=sub; p.appendChild(s);}
+  return p;
+}
+function defaultDetail(){
+  setDetail([textNode(bookTab==="veh"?"のりものを タップすると、はじめて みつけた日が わかるよ。":"はんこを タップすると、はじめて できた日が わかるよ。")]);
+}
+function showStamp(name,r,i,veh){
+  if(!r){
+    tone(220,0,.2,"sine",.12);
+    setDetail([textNode("「"+name+"」は まだ ないよ。",veh?"おでかけで みつけたら「きろくする」で たまります。":"できたら「きろくする」で はんこが たまります。")]);
+    return;
+  }
+  tone(SCALE[i%5]*1.2,0,.18,"triangle",.16); tone(SCALE[i%5]*1.8,.1,.2,"triangle",.1);
+  const nodes=[];
+  if(r.thumb){
+    const t=document.createElement("button"); t.type="button"; t.className="th"; t.setAttribute("aria-label","しゃしんを みる");
+    const im=document.createElement("img"); im.alt=""; im.src=r.thumb; t.appendChild(im);
+    t.addEventListener("click",()=>openViewer(r));
+    nodes.push(t);
+  }
+  nodes.push(textNode("「"+name+"」 "+(veh?"みつけた！":"はじめて！"),metaOf(r)+(r.note?"　"+r.note:"")));
+  setDetail(nodes);
+}
+function renderBook(){
+  const m=stampMap(S.records), grid=$("stamps"); grid.textContent="";
+  const veh=bookTab==="veh";
+  const list=veh?VEHICLES.map(v=>({name:v.nm,key:"v:"+v.k,k:v.k})):STAMPS.map(x=>({name:x.k,key:x.k,s:x.s}));
+  let n=0;
+  list.forEach((x,i)=>{
+    const r=m[x.key]; if(r) n++;
+    const b=document.createElement("button"); b.type="button"; b.className="stamp"+(r?"":" off");
+    b.style.setProperty("--c",SEALCOL[i%SEALCOL.length]);
+    const seal=document.createElement("span"); seal.className="seal";
+    if(veh&&r) seal.innerHTML=animalSvg(x.k); else seal.textContent=r?x.s:"？";
+    if(r) seal.style.transform="rotate("+(((i*7)%13)-6)+"deg)";
+    const nm=document.createElement("span"); nm.className="snm"; nm.textContent=x.name;
+    b.appendChild(seal); b.appendChild(nm);
+    b.addEventListener("click",()=>showStamp(x.name,r,i,veh));
+    grid.appendChild(b);
+  });
+  $("bookCount").textContent=n+" / "+list.length;
+  $("bkSkill").setAttribute("aria-pressed",String(!veh));
+  $("bkVeh").setAttribute("aria-pressed",String(veh));
+}
+function openBook(){renderBook(); defaultDetail(); $("book").hidden=false; tone(SCALE[1],0,.15,"triangle",.14);}
+$("btnBook").addEventListener("click",openBook);
+$("bkSkill").addEventListener("click",()=>{bookTab="skill"; renderBook(); defaultDetail();});
+$("bkVeh").addEventListener("click",()=>{bookTab="veh"; renderBook(); defaultDetail();});
+$("bookBack").addEventListener("click",()=>{$("book").hidden=true;});
+
+/* ---------- look: hair, outfit, glasses ---------- */
+const HAIR=[["","なし"],["fuzz","うぶ毛"],["short","ショート"],["bob","ボブ"],["long","ロング"],["bun","おだんご"],["twin","ふたつ結び"],["curly","くせ毛"]];
+const HAIRKEYS=HAIR.map(h=>h[0]).filter(Boolean);
+const HEX=/^#[0-9a-fA-F]{6}$/;
+const LOOK_PROMPT=`添付の写真は、小さな子どもの写真です。この子に似たイラストのキャラクターを作るために、見た目の特徴だけを読み取ってください。名前や人物の特定はしないでください。
+次のJSONだけを返してください（説明文は不要）。
+{"hair":"none か fuzz か short か bob か long か bun か twin か curly のどれか1つ","hairColor":"#RRGGBB（髪の色に近い色）","outfitColor":"#RRGGBB（着ている服でいちばん目立つ色。分からなければ #ef5b4b）","glasses":true または false}
+髪型の目安: none=髪がほとんどない, fuzz=うぶ毛程度, short=短い, bob=あごくらいまで, long=肩より長い, bun=頭の上で結んでいる, twin=左右で2つに結んでいる, curly=くるくるのくせ毛。`;
+function safeLook(d){
+  d=d||{};
+  return {
+    hair:HAIRKEYS.indexOf(d.hair)>=0?d.hair:"",
+    hairColor:HEX.test(String(d.hairColor))?String(d.hairColor):"#4a3426",
+    bibColor:HEX.test(String(d.bibColor))?String(d.bibColor):"#ef5b4b",
+    glasses:!!d.glasses
+  };
+}
+function driverMarkup(l){
+  const top='<path class="hair-fill" d="M50 96C52 58 84 40 120 40C156 40 188 58 190 96C176 80 150 72 120 72C90 72 64 80 50 96Z"/>';
+  const H={
+    fuzz:'<path class="hair-line" d="M96 54Q104 42 112 52M116 48Q122 36 130 48M134 54Q142 44 148 56"/>',
+    short:top,
+    bob:'<ellipse class="hair-fill" cx="48" cy="112" rx="15" ry="30"/><ellipse class="hair-fill" cx="192" cy="112" rx="15" ry="30"/>'+top,
+    long:'<ellipse class="hair-fill" cx="46" cy="128" rx="14" ry="48"/><ellipse class="hair-fill" cx="194" cy="128" rx="14" ry="48"/>'+top,
+    bun:'<circle class="hair-fill" cx="120" cy="32" r="17"/>'+top,
+    twin:'<circle class="hair-fill" cx="40" cy="98" r="15"/><circle class="hair-fill" cx="200" cy="98" r="15"/>'+top,
+    curly:top+'<circle class="hair-fill" cx="66" cy="76" r="15"/><circle class="hair-fill" cx="92" cy="56" r="16"/><circle class="hair-fill" cx="120" cy="48" r="17"/><circle class="hair-fill" cx="148" cy="56" r="16"/><circle class="hair-fill" cx="174" cy="76" r="15"/>'
+  };
+  return '<g transform="scale(.26) translate(-120 -130)">'
+    +'<circle class="drvface" cx="120" cy="130" r="86"/>'
+    +'<ellipse class="f-face" cx="90" cy="136" rx="9" ry="12"/><ellipse class="f-face" cx="150" cy="136" rx="9" ry="12"/>'
+    +'<ellipse class="f-cheek" cx="70" cy="158" rx="12" ry="7" opacity=".75"/><ellipse class="f-cheek" cx="170" cy="158" rx="12" ry="7" opacity=".75"/>'
+    +'<path class="s-face" d="M106 160Q120 174 134 160"/>'
+    +(H[l.hair]||"")
+    +(l.glasses?'<circle class="gl" cx="90" cy="136" r="21"/><circle class="gl" cx="150" cy="136" r="21"/><path class="gl" d="M111 132Q120 126 129 132"/>':'')
+    +'</g>';
+}
+let lastDrv="";
+function renderLook(){
+  const l=S.look;
+  hero.style.setProperty("--hair",l.hairColor);
+  hero.style.setProperty("--outfit",l.bibColor);
+  const html=driverMarkup(l);
+  if(html!==lastDrv){
+    lastDrv=html;
+    Array.prototype.forEach.call(hero.querySelectorAll(".drv"),g=>{g.innerHTML=html;});
+  }
+}
+function editLook(){
+  if(!S.edit) S.edit=Object.assign({},S.look);
+  S.dirty=true; return S.edit;
+}
+const hairChips=$("hairChips");
+HAIR.forEach(h=>{
+  const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=h[1]; b.dataset.k=h[0];
+  b.addEventListener("click",()=>{editLook().hair=h[0]; renderLookUi();});
+  hairChips.appendChild(b);
+});
+function renderLookUi(){
+  const cur=S.edit||S.look;
+  Array.prototype.forEach.call(hairChips.children,b=>b.setAttribute("aria-pressed",String(b.dataset.k===cur.hair)));
+  $("hairColorIn").value=cur.hairColor; $("bibColorIn").value=cur.bibColor;
+  $("glBtn").setAttribute("aria-pressed",String(cur.glasses));
+  $("lookSave").disabled=!S.db||!S.canWrite||S.reading;
+  $("lookReadLabel").hidden=!(S.sample&&S.canImg);
+  $("lookReadText").textContent=S.reading?"読み取り中…（10〜30秒かかります）":"写真をえらんで、特徴を読み取る";
+}
+const setLookNote=t=>{$("lookNote").textContent=t};
+$("hairColorIn").addEventListener("input",e=>{editLook().hairColor=e.target.value;});
+$("bibColorIn").addEventListener("input",e=>{const l=editLook(); l.bibColor=e.target.value; renderLookUi();});
+$("glBtn").addEventListener("click",()=>{const l=editLook(); l.glasses=!l.glasses; renderLookUi();});
+$("lookReset").addEventListener("click",()=>{S.edit=safeLook({hair:"fuzz"}); S.dirty=true; renderLookUi(); setLookNote("もとの すがたに戻しました。「このすがたにする」で保存します。");});
+$("lookSave").addEventListener("click",async()=>{
+  if(!S.db||!S.canWrite) return;
+  const l=safeLook(S.edit||S.look);
+  try{
+    await S.db.doc("app/look").set(l);
+    S.look=l; S.edit=null; S.dirty=false;
+    let t="すがたを保存しました";
+    if(S.previewPts===null&&stageOf(totalPts())===0){S.previewPts=THR[1]; t="保存しました。たまごのあいだは出ないので、ちびのプレビューで表示しています";}
+    closeSheet(); renderAll(); renderLookUi(); anim("a-squish"); fanfare(); say("にてるかな？"); toast(t);
+  }catch(e){toast(errMsg(e,"保存できませんでした。"));}
+});
+function lookErr(e){
+  const c=e&&e.code;
+  if(c==="not_granted") return "Claudeの利用が許可されませんでした。ページを開きなおすと、もう一度確認が出ます。下の項目は手動で選べます。";
+  if(c==="image_rejected") return "この写真は読み込めませんでした。別の写真でためしてください。";
+  if(c==="refused") return "この写真は読み取れませんでした。別の写真でためすか、下の項目を手動で選んでください。";
+  if(c==="rate_limited") return "短い間に使いすぎたようです。少し時間をおいて、もう一度ためしてください。";
+  if(c==="session_expired") return "ログインの期限が切れました。ページを開きなおしてください。";
+  if(c==="invalid_json"||c==="empty_completion") return "うまく読み取れませんでした。もう一度ためすか、下の項目を手動で選んでください。";
+  return "読み取れませんでした。下の項目は手動で選べます。"+(c?"（"+c+"）":"");
+}
+function toBlob(im,max){
+  const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));
+  const c=document.createElement("canvas");
+  c.width=Math.round(im.naturalWidth*k); c.height=Math.round(im.naturalHeight*k);
+  c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error("blob")),"image/jpeg",.85));
+}
+$("lookInput").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value="";
+  if(!f||!S.sample||S.reading) return;
+  S.reading=true; renderLookUi();
+  setLookNote("読み取り中です。写真はClaudeに送られますが、このページには保存されません。");
+  try{
+    const im=await loadImg(f); const blob=await toBlob(im,768);
+    const r=await S.sample.json(LOOK_PROMPT,{images:blob,modelTier:"default"});
+    if(!r||typeof r!=="object") throw {code:"invalid_json"};
+    S.edit=safeLook({hair:r.hair,hairColor:r.hairColor,bibColor:r.outfitColor,glasses:r.glasses===true});
+    S.dirty=true;
+    setLookNote("読み取りました。気になるところは直して、「このすがたにする」を押してください。");
+  }catch(err){setLookNote(lookErr(err));}
+  finally{S.reading=false; renderLookUi();}
+});
+renderLookUi();
+
+/* ---------- shared data ---------- */
+function setNoDb(msg){S.noDb=msg; renderAll();}
+async function init(){
+  const c=window.claude;
+  try{S.user=await c.use("user");}catch(e){}
+  try{S.db=await c.use("db");}catch(e){}
+  try{
+    S.sample=await c.use("sample");
+    if(S.sample&&typeof S.sample.limits==="function"){
+      const lim=await S.sample.limits().catch(()=>null);
+      S.canImg=!!(lim&&lim.images);
+    }
+  }catch(e){}
+  renderLookUi();
+  if(!S.db){setNoDb("ログインすると、ふたりで記録を共有できます。いまは遊ぶだけできます。"); return;}
+  try{
+    if(S.user&&typeof S.user.can==="function"){
+      const w=await Promise.resolve(S.user.can("data.write"));
+      S.canWrite=w!==false;
+    }
+  }catch(e){}
+  let first=true; const seen=new Set();
+  S.db.collection("records").orderBy("createdAt","desc").limit(1000).onSnapshot(snap=>{
+    const prevStage=stageOf(totalPts());
+    const stampsBefore=stampMap(S.records);
+    const recs=snap.docs.map(d=>safeRec(Object.assign({},d.data(),{id:d.id})));
+    const fresh=recs.filter(r=>!seen.has(r.id));
+    recs.forEach(r=>seen.add(r.id));
+    S.records=recs;
+    const now=Date.now();
+    const recent=fresh.filter(r=>now-r.createdAt<60000);
+    renderAll();
+    if(!first&&recent.length&&S.previewPts===null){
+      const stampsAfter=stampMap(recs);
+      const gotStamp=Object.keys(stampsAfter).some(k=>!stampsBefore[k]);
+      feedReaction(recent[0],stageOf(totalPts())>prevStage,gotStamp);
+    }
+    if(first){say(pick(lines()));}
+    first=false;
+  },err=>{
+    if(err&&err.code==="revoked") setNoDb("共有の保存が使えなくなりました。ページを開きなおしてください。");
+  });
+  S.db.doc("app/settings").onSnapshot(s=>{
+    if(!s.exists) return;
+    const d=s.data()||{};
+    S.settings={
+      charName:String(d.charName||"ぶーぶー").slice(0,12),
+      birthday:/^\d{4}-\d{2}-\d{2}$/.test(String(d.birthday||""))?String(d.birthday):""
+    };
+    syncSettings(); renderAll();
+  },()=>{});
+  S.db.doc("app/look").onSnapshot(s=>{
+    if(!s.exists) return;
+    S.look=safeLook(s.data());
+    if(!S.dirty) S.edit=null;
+    renderAll(); renderLookUi();
+  },()=>{});
+  renderAll(); renderLookUi();
+}
+function boot(n){
+  if(window.claude&&typeof window.claude.use==="function"){init(); return;}
+  if(n<5) setTimeout(()=>boot(n+1),500);
+  else setNoDb("共有の保存は、この画面では使えません。遊ぶだけできます。");
+}
+
+$("bkExport").addEventListener("click",async()=>{
+  try{
+    const txt=await window.__backup.exportJson();
+    const d=new Date(), p=n=>String(n).padStart(2,"0");
+    const name="ookikunare-"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".json";
+    const file=new File([txt],name,{type:"application/json"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name}); return;}catch(e){if(e&&e.name==="AbortError") return;}}
+    const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
+    toast("書き出しました");
+  }catch(e){toast("書き出せませんでした");}
+});
+$("bkImport").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f) return;
+  try{const n=await window.__backup.importJson(await f.text()); toast("読み込みました（"+n+"件）");}
+  catch(x){toast("このファイルは読み込めませんでした");}
+});
+renderAll();
+say(pick(lines()));
+boot(0);
+})();
+</script>
+
+<script>
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
+}
+</script>
+</body>
+</html>
